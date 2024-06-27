@@ -4,13 +4,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualisation de Données</title>
+    <title>Visualisation de données</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 
 <body>
-    <h1>Visualisation de Données</h1>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
+    <h1>CIBM Community</h1>
+    <h2>Carte</h2>
+    <div id="map">
+        <svg id="network"></svg>
+    </div>
+    <script type="module" src="src/neo4j.js"></script>
+    <script type="module" src="src/main.js"></script>
 </body>
 
 </html>
