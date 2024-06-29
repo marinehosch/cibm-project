@@ -3,7 +3,13 @@ import Cheerio from "cheerio";
 import { parseStringPromise } from "xml2js";
 import axios from "axios";
 
-export { getResearchers, getInstitutions, getHtml, getInstitutionCoordinates };
+export {
+  getResearchers,
+  getInstitutions,
+  getHtml,
+  getInstitutionCoordinates,
+  getResearchersByInstitution,
+};
 
 const driver = neo4j.driver(
   "bolt://localhost:7687",
@@ -23,8 +29,6 @@ const getResearchers = async () => {
   }));
 };
 
-console.log(getResearchers());
-
 //requête sur la base de données pour aller chercher les institutions
 const getInstitutions = async () => {
   const session = driver.session();
@@ -32,7 +36,6 @@ const getInstitutions = async () => {
   session.close();
   return institutions.records.map((record) => record.get(0).properties);
 };
-console.log(getInstitutions());
 
 //requête pour aller chercher les latitudes et longitudes pour chaque institution
 const getInstitutionCoordinates = async () => {
@@ -47,7 +50,6 @@ const getInstitutionCoordinates = async () => {
     longitude: parseFloat(record.get("longitude")),
   }));
 };
-console.log(getInstitutionCoordinates());
 
 //////////////////////par ID ne marche pas- revoir !
 // const getResearcherById = async (id) => {
@@ -66,3 +68,26 @@ const getHtml = async () => {
   const { data } = await axios.get(url);
   return data;
 };
+
+// Requête pour récupérer les chercheurs par institution
+const getResearchersByInstitution = async (institutionName) => {
+  const session = driver.session();
+  const result = await session.run(
+    "MATCH (i:Institution {name: $institutionName})<-[:WORKS_FOR]-(r:Researcher) RETURN r.name AS name",
+    { institutionName }
+  );
+  session.close();
+  return result.records.map((record) => ({
+    name: record.get("name"),
+  }));
+};
+
+// Test de la fonction
+(async () => {
+  try {
+    const researchers = await getResearchersByInstitution("EPFL");
+    console.log(researchers);
+  } catch (error) {
+    console.error(error);
+  }
+})();

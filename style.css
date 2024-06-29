@@ -34,17 +34,41 @@ a {
     width: 20cm;
     height: 13cm;
     border: 1px solid black;
+    z-index: 1;
 }
-body,
-html {
+#scene {
+    width: 800px;
+    height: 800px;
+    position: relative;
+}
+
+
+#network {
+    width: 100%;
     height: 100%;
-    margin: 0;
-}
-
-
-svg#network {
     position: absolute;
+    z-index: 2;
     top: 0;
     left: 0;
     pointer-events: none;
+}
+
+#network svg {
+    width: 100%;
+    height: 100%;
+}
+#network path {
+    pointer-events: auto;
+}
+
+.researcher-label {
+    background-color: rgba(128, 128, 128, 0.7);
+    /* Gris avec opacité de 70% */
+    border-radius: 5px;
+    /* Bords arrondis */
+    padding: 2px 5px;
+    /* Espacement autour du texte */
+    font-size: 10px;
+    /* Taille de la police */
+  
 }

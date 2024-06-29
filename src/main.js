@@ -1,10 +1,6 @@
-import * as d3 from "d3";
 import L from "leaflet";
-import {
-  getInstitutions,
-  getResearchers,
-  getInstitutionCoordinates,
-} from "./neo4j.js";
+import { getInstitutions, getResearchersByInstitution } from "./neo4j.js";
+import * as d3 from "d3";
 
 // Initialisation de la carte Leaflet
 const map = L.map("map").setView([46.51999710099841, 6.569531292590334], 13);
@@ -13,75 +9,140 @@ L.tileLayer(
   {
     maxZoom: 20,
     attribution:
-      '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
+      '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/" target="_blank">OpenStreetMap</a>',
   }
 ).addTo(map);
 
-// Ajouter un marker sur la carte pour chaque institution de la base de données
+// Création du conteneur SVG pour D3
+L.svg().addTo(map);
+
+// Stocker le groupe SVG et la couche des chercheurs
+let researcherGroup = null;
+
+// Fonction pour ajouter des marqueurs pour chaque institution
 const addMarkers = async () => {
   const institutions = await getInstitutions();
   institutions.forEach((institution) => {
-    L.marker([institution.latitude, institution.longitude])
+    const marker = L.marker([institution.latitude, institution.longitude])
       .addTo(map)
       .bindPopup(institution.name);
+
+    marker.on("click", async () => {
+      try {
+        // Effacer les chercheurs précédents
+        if (researcherGroup) {
+          researcherGroup.remove();
+        }
+        const researchers = await getResearchersByInstitution(institution.name);
+        researcherNetwork(institution, researchers);
+      } catch (error) {
+        console.error("Erreur lors de la récupération des chercheurs:", error);
+      }
+    });
   });
 };
-addMarkers();
 
-// Création du réseau de collaboration entre les chercheurs
-const createGraph = async () => {
-  try {
-    // Récupérer les chercheurs et les coordonnées des institutions depuis Neo4j
-    const researchers = await getResearchers();
-    const institutions = await getInstitutionCoordinates();
+// Fonction pour dessiner les chercheurs autour d'une institution
+const researcherNetwork = (institution, researchers) => {
+  // Sélectionner le conteneur SVG de Leaflet
+  const overlay = d3.select(map.getPanes().overlayPane).select("svg");
+  researcherGroup = overlay.append("g").attr("class", "leaflet-zoom-hide");
 
-    // Sélectionner l'élément SVG avec l'ID "network"
-    const svg = d3.select("#network");
+  // Calculer la position de l'institution sur la carte
+  const instPoint = map.latLngToLayerPoint([
+    institution.latitude,
+    institution.longitude,
+  ]);
 
-    // Conversion des coordonnées géographiques en coordonnées SVG
-    const projectPoint = (lat, lng) => {
-      const point = map.latLngToLayerPoint(new L.LatLng(lat, lng));
-      return [point.x, point.y];
-    };
+  // Créer les nœuds pour les chercheurs
+  const radius = 50;
+  const angleStep = (2 * Math.PI) / researchers.length;
+  const researcherNodes = researchers.map((researcher, index) => ({
+    name: researcher.name,
+    x: instPoint.x + radius * Math.cos(index * angleStep),
+    y: instPoint.y + radius * Math.sin(index * angleStep),
+  }));
 
-    // Création des nœuds (chercheurs) sur la carte Leaflet
-    svg
+  // Ajouter les liens (edges) entre l'institution et les chercheurs
+  researcherGroup
+    .selectAll("line")
+    .data(researcherNodes)
+    .enter()
+    .append("line")
+    .attr("x1", instPoint.x)
+    .attr("y1", instPoint.y)
+    .attr("x2", (d) => d.x)
+    .attr("y2", (d) => d.y)
+    .attr("stroke", "black")
+    .attr("stroke-width", 1);
+
+  // Ajouter les cercles et les noms pour les chercheurs
+  const nodes = researcherGroup
+    .selectAll("g")
+    .data(researcherNodes)
+    .enter()
+    .append("g");
+
+  nodes
+    .append("circle")
+    .attr("cx", (d) => d.x)
+    .attr("cy", (d) => d.y)
+    .attr("r", 5)
+    .attr("fill", "blue")
+    .attr("opacity", 0.7);
+
+  nodes
+    .append("rect")
+    .attr("x", (d) => d.x + 8)
+    .attr("y", (d) => d.y - 10)
+    .attr("width", (d) => d.name.length * 6)
+    .attr("height", 14)
+    .attr("rx", 5) // Bords arrondis
+    .attr("ry", 5) // Bords arrondis
+    .attr("fill", "rgba(128, 128, 128, 0.7)");
+
+  nodes
+    .append("text")
+    .attr("x", (d) => d.x + 12)
+    .attr("y", (d) => d.y + 2)
+    .text((d) => d.name)
+    .attr("class", "researcher-label");
+
+  // Mettre à jour la position des éléments SVG lors du déplacement ou du zoom de la carte
+  const update = () => {
+    const newInstPoint = map.latLngToLayerPoint([
+      institution.latitude,
+      institution.longitude,
+    ]);
+
+    researcherGroup
+      .selectAll("line")
+      .attr("x1", newInstPoint.x)
+      .attr("y1", newInstPoint.y)
+      .attr("x2", (d) => newInstPoint.x + (d.x - instPoint.x))
+      .attr("y2", (d) => newInstPoint.y + (d.y - instPoint.y));
+
+    researcherGroup
       .selectAll("circle")
-      .data(researchers)
-      .enter()
-      .append("circle")
-      .attr("r", 5)
-      .attr("fill", "blue")
-      .attr("opacity", 0.7)
-      .attr("cx", (d) => {
-        const institution = institutions.find(
-          (inst) => inst.name === d.institution
-        );
-        if (institution) {
-          return projectPoint(institution.latitude, institution.longitude)[0];
-        } else {
-          return 0; // ou une valeur par défaut appropriée
-        }
-      })
-      .attr("cy", (d) => {
-        const institution = institutions.find(
-          (inst) => inst.name === d.institution
-        );
-        if (institution) {
-          return projectPoint(institution.latitude, institution.longitude)[1];
-        } else {
-          return 0; // ou une valeur par défaut appropriée
-        }
-      })
-      .append("title")
-      .text((d) => d.name);
-  } catch (error) {
-    console.error(
-      "Erreur lors de la création de la visualisation en réseau:",
-      error
-    );
-  }
+      .attr("cx", (d) => newInstPoint.x + (d.x - instPoint.x))
+      .attr("cy", (d) => newInstPoint.y + (d.y - instPoint.y));
+
+    researcherGroup
+      .selectAll("rect")
+      .attr("x", (d) => newInstPoint.x + (d.x - instPoint.x) + 8)
+      .attr("y", (d) => newInstPoint.y + (d.y - instPoint.y) - 10);
+
+    researcherGroup
+      .selectAll("text")
+      .attr("x", (d) => newInstPoint.x + (d.x - instPoint.x) + 12)
+      .attr("y", (d) => newInstPoint.y + (d.y - instPoint.y) + 2);
+  };
+
+  map.on("zoomend", update);
+  map.on("moveend", update);
+
+  update();
 };
 
-// Appeler la fonction pour créer la visualisation une fois que la carte est prête
-map.on("load", createGraph);
+// Ajouter les marqueurs sur la carte
+addMarkers();
