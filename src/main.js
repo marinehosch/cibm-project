@@ -1,5 +1,5 @@
 import L from "leaflet";
-import { getInstitutions, getResearchersByInstitution } from "./neo4j.js";
+import { getInstitutions, getResearchersByInstitution } from "./getDB.js";
 import * as d3 from "d3";
 
 // Initialisation de la carte Leaflet

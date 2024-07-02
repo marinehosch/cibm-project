@@ -6,7 +6,7 @@ const driver = neo4j.driver(
   neo4j.auth.basic("neo4j", "password")
 );
 
-// Fonction pour ajouter des membres principaux a la DB
+// Fonction pour ajouter les membres principaux a la DB
 const pushCoreMembersToDB = async (members) => {
   const session = driver.session();
   try {
@@ -30,33 +30,10 @@ const pushCoreMembersToDB = async (members) => {
   }
 };
 
-// Requête pour récupérer les chercheurs par institution
-const getResearchersByInstitution = async (institutionName) => {
-  const session = driver.session();
-  const result = await session.run(
-    "MATCH (i:Institution {name: $institutionName})<-[:WORKS_FOR]-(r:Researcher) RETURN r.name AS name",
-    { institutionName }
-  );
-  session.close();
-  return result.records.map((record) => ({
-    name: record.get("name"),
-  }));
-};
-
-// Requête pour récupérer toutes les institutions
-const getInstitutions = async () => {
-  const session = driver.session();
-  const institutions = await session.run("MATCH (n:Institution) RETURN n");
-  session.close();
-  return institutions.records.map((record) => record.get(0).properties);
-};
-
 // Programme principal pour faire les requêtes
 const main = async () => {
   const members = await coreMembers();
   await pushCoreMembersToDB(members);
 };
-
-export { getResearchersByInstitution, getInstitutions, main };
 
 main();
