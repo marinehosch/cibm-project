@@ -1,17 +1,44 @@
-const cibm_url = "https://cibm.ch/core-members/";
+import axios from "axios";
+import cheerio from "cheerio";
 
-const coreMembers = async () => {
-  const response = await fetch(cibm_url);
-  const html = await response.text();
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const researchers = Array.from(doc.querySelectorAll(".team-member"));
-  return researchers.map((researcher) => {
-    const name = researcher.querySelector(".team-member-name").textContent;
-    const institution = researcher.querySelector(
-      ".team-member-institution"
-    ).textContent;
-    console.log(name, institution);
-    return { name, institution };
-  });
+export const coreMembers = async () => {
+  const cibm_url = "/api/core-members/"; // Utilisation du proxy pour contourner CORS
+
+  try {
+    const response = await axios.get(cibm_url);
+    const html = response.data;
+    const $ = cheerio.load(html);
+
+    const members = [];
+    $("div.rt-col-md-2").each((index, element) => {
+      const name = $(element).find(".team-name").text().trim();
+      const positionElement = $(element).find(".tlp-position");
+
+      const positionText = positionElement.text().trim();
+      const words = positionText.split(" ");
+
+      const module = ["MRI", "EEG", "PET", "SP", "DS"].filter((word) =>
+        words.includes(word)
+      );
+
+      const institution = ["CHUV", "UNIL", "EPFL", "HUG", "UNIGE", "CIBM"].find(
+        (inst) => words.some((word) => word.includes(inst))
+      );
+
+      const detailsMember = {
+        name,
+        module: module || "",
+        institution: institution || "",
+      };
+
+      members.push(detailsMember);
+    });
+
+    console.log(members);
+    return members;
+  } catch (error) {
+    console.error("Error scraping core members:", error);
+  }
 };
-coreMembers();
+
+// coreMembers();
