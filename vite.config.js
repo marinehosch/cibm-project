@@ -10,7 +10,6 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
-    // Ajoutez la configuration du type MIME si nécessaire
     mimeTypes: {
       js: "application/javascript",
     },

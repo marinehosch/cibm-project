@@ -1,5 +1,5 @@
 import neo4j from "neo4j-driver";
-import { coreMembers } from "./webscraping.js";
+import { getAllMembers } from "./webscraping.js";
 
 const driver = neo4j.driver(
   "bolt://localhost:7687",
@@ -7,19 +7,25 @@ const driver = neo4j.driver(
 );
 
 // Fonction pour ajouter les membres principaux a la DB
-const pushCoreMembersToDB = async (members) => {
+// Fonction pour ajouter des membres à la base de données
+const pushMembersToDB = async (members) => {
   const session = driver.session();
   try {
     for (const member of members) {
       const { name, module, institution } = member;
       await session.run(
         `MERGE (r:Researcher {name: $name})
-         SET r.moduleType = $module, r.ResearcherType = "coreMember", r.Institution = $institution
-         MERGE (m:Module {name: $module})
-         MERGE (i:Institution {name: $institution})
-         MERGE (r)-[:WORKS_WITH]->(m)
-         MERGE (r)-[:WORKS_FOR]->(i)`,
+         ON CREATE SET r.moduleType = $module, r.Institution = $institution, 
+         ON MATCH SET r.moduleType = $module, r.Institution = $institution,`,
         { name, module, institution }
+      );
+      await session.run("MERGE (i:Institution {name: $institution})", {
+        institution,
+      });
+      await session.run(
+        `MATCH (r:Researcher {name: $name}), (i:Institution {name: $institution})
+         MERGE (r)-[:WORKS_FOR]->(i)`,
+        { name, institution }
       );
     }
     console.log("Data successfully pushed to Neo4j");
@@ -30,10 +36,4 @@ const pushCoreMembersToDB = async (members) => {
   }
 };
 
-// Programme principal pour faire les requêtes
-const main = async () => {
-  const members = await coreMembers();
-  await pushCoreMembersToDB(members);
-};
-
-main();
+export { pushMembersToDB };
