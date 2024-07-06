@@ -1,5 +1,4 @@
 import neo4j from "neo4j-driver";
-import { getAllMembers } from "./webscraping.js";
 
 const driver = neo4j.driver(
   "bolt://localhost:7687",
@@ -7,7 +6,6 @@ const driver = neo4j.driver(
 );
 
 // Fonction pour ajouter les membres principaux a la DB
-// Fonction pour ajouter des membres à la base de données
 const pushMembersToDB = async (members) => {
   const session = driver.session();
   try {
