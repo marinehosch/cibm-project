@@ -122,5 +122,8 @@ const getAllMembersByDepartment = async () => {
   return allMembersByDepartment;
 };
 
-// Appel de la fonction pour récupérer tous les membres
-getAllMembersByDepartment();
+export {
+  getInstitutionUrls,
+  getMemberNamesByDepartment,
+  getAllMembersByDepartment,
+};
