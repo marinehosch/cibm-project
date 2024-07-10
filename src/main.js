@@ -1,6 +1,9 @@
 import L from "leaflet";
-import { getInstitutions, getResearchersByInstitution } from "./getDB.js";
-import { pushMembersToDB } from "./neo4j.js";
+import {
+  getInstitutions,
+  getResearchersByInstitution,
+  getResearchersByModule,
+} from "./getDB.js";
 import * as d3 from "d3";
 
 // Initialisation de la carte Leaflet
@@ -14,38 +17,61 @@ L.tileLayer(
   }
 ).addTo(map);
 
-// Création du conteneur SVG pour D3
 L.svg().addTo(map);
 
-// Stocker le groupe SVG et la couche des chercheurs
 let researcherGroup = null;
+
+// Fonction pour calculer la taille de l'icône en fonction du nombre de chercheurs
+const calculateIconSize = (numResearchers) => {
+  const minSize = 20;
+  const maxSize = 60;
+  const size = Math.min(maxSize, minSize + numResearchers * 2);
+  return [size, size];
+};
 
 // Fonction pour ajouter des marqueurs pour chaque institution
 const addMarkers = async () => {
   const institutions = await getInstitutions();
-  institutions.forEach((institution) => {
-    const marker = L.marker([institution.latitude, institution.longitude])
-      .addTo(map)
-      .bindPopup(institution.name);
+  for (const institution of institutions) {
+    const researchers = await getResearchersByInstitution(institution.name);
+    const iconSize = calculateIconSize(researchers.length);
 
+    const customIcon = L.icon({
+      iconUrl: "/src/icons/blue-circle.svg",
+      iconSize: iconSize,
+      iconAnchor: [iconSize[0] / 2, iconSize[1]],
+      popupAnchor: [0, -iconSize[1]],
+    });
+
+    const marker = L.marker([institution.latitude, institution.longitude], {
+      icon: customIcon,
+    })
+      .addTo(map)
+      .bindPopup(institution.name)
+      .openPopup();
+
+    // Afficher les institutions au hover
+    marker.on("mouseover", () => {
+      marker.openPopup();
+    });
+
+    // Afficher les chercheurs au clic
     marker.on("click", async () => {
       try {
         // Effacer les chercheurs précédents
         if (researcherGroup) {
           researcherGroup.remove();
         }
-        const researchers = await getResearchersByInstitution(institution.name);
         researcherNetwork(institution, researchers);
       } catch (error) {
         console.error("Erreur lors de la récupération des chercheurs:", error);
       }
     });
-  });
+  }
 };
 
 // Fonction pour dessiner les chercheurs autour d'une institution
 const researcherNetwork = (institution, researchers) => {
-  // Sélectionner le conteneur SVG de Leaflet
   const overlay = d3.select(map.getPanes().overlayPane).select("svg");
   researcherGroup = overlay.append("g").attr("class", "leaflet-zoom-hide");
 
@@ -56,7 +82,7 @@ const researcherNetwork = (institution, researchers) => {
   ]);
 
   // Créer les nœuds pour les chercheurs
-  const radius = 50;
+  const radius = 100;
   const angleStep = (2 * Math.PI) / researchers.length;
   const researcherNodes = researchers.map((researcher, index) => ({
     name: researcher.name,
@@ -88,19 +114,21 @@ const researcherNetwork = (institution, researchers) => {
     .append("circle")
     .attr("cx", (d) => d.x)
     .attr("cy", (d) => d.y)
-    .attr("r", 5)
-    .attr("fill", "blue")
-    .attr("opacity", 0.7);
+    .attr("r", 7)
+    .attr("fill", "#61b2e4")
+    .attr("opacity", 0.7)
+    .attr("stroke", "grey");
 
   nodes
     .append("rect")
-    .attr("x", (d) => d.x + 8)
-    .attr("y", (d) => d.y - 10)
-    .attr("width", (d) => d.name.length * 6)
+    .attr("x", (d) => d.x + 9)
+    .attr("y", (d) => d.y - 11)
+    .attr("width", (d) => d.name.length * 6.2)
     .attr("height", 14)
-    .attr("rx", 5) // Bords arrondis
-    .attr("ry", 5) // Bords arrondis
-    .attr("fill", "rgba(128, 128, 128, 0.7)");
+    .attr("rx", 5)
+    .attr("ry", 5)
+    .attr("stroke", "rgba(128, 128, 128, 0.7)")
+    .attr("fill", "white");
 
   nodes
     .append("text")
@@ -145,5 +173,63 @@ const researcherNetwork = (institution, researchers) => {
   update();
 };
 
+// Fonction pour filtrer les chercheurs par module
+const filterResearchersByModule = async (selectedModules) => {
+  // Désélectionner tous les filtres de base
+  document.querySelectorAll(".module-filter").forEach((checkbox) => {
+    checkbox.checked = false;
+  });
+
+  // Effacer les chercheurs précédents
+  if (researcherGroup) {
+    researcherGroup.remove();
+  }
+
+  let filteredResearchers = [];
+
+  if (selectedModules.length > 0) {
+    for (const module of selectedModules) {
+      const researchers = await getResearchersByModule(module);
+      filteredResearchers = filteredResearchers.concat(researchers);
+    }
+  } else {
+    // Récupérer tous les chercheurs pour chaque institution si aucun filtre sélectionné
+    const institutions = await getInstitutions();
+    for (const institution of institutions) {
+      const researchers = await getResearchersByInstitution(institution.name);
+      filteredResearchers = filteredResearchers.concat(researchers);
+    }
+  }
+
+  // Afficher les chercheurs pour chaque institution
+  const institutions = await getInstitutions();
+  institutions.forEach((institution) => {
+    const instResearchers = filteredResearchers.filter(
+      (r) => r.institution === institution.name
+    );
+    if (instResearchers.length > 0) {
+      researcherNetwork(institution, instResearchers);
+    }
+  });
+};
+
+// Écouteur pour les filtres de modules
+document.querySelectorAll(".module-filter").forEach((checkbox) => {
+  checkbox.addEventListener("change", async () => {
+    const selectedModules = Array.from(
+      document.querySelectorAll(".module-filter:checked")
+    ).map((cb) => cb.value);
+    await filterResearchersByModule(selectedModules);
+  });
+});
+
 // Ajouter les marqueurs sur la carte
 addMarkers();
+
+// Supprimer le groupe de chercheurs au clic en dehors des marqueurs
+map.on("click", () => {
+  if (researcherGroup) {
+    researcherGroup.remove();
+    researcherGroup = null;
+  }
+});

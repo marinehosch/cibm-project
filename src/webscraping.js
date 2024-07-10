@@ -49,13 +49,8 @@ const extractSectionFromDepartment = (departmentName) => {
     }
   }
 
-  // Déterminer mainInstitution
-  let mainInstitution = "";
-  if (institutions.length > 1) {
-    mainInstitution = institutions[0];
-  } else if (institutions.length === 1 && institutions[0] !== "CIBM") {
-    mainInstitution = institutions[0];
-  }
+  // Déterminer mainInstitution, par défaut "CIBM" si aucune institution trouvée
+  let mainInstitution = institutions.length > 0 ? institutions[0] : "CIBM";
 
   const section = institutions.join("-");
 

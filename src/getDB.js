@@ -16,6 +16,19 @@ const getResearchersByInstitution = async (institutionName) => {
     name: record.get("name"),
   }));
 };
+const getResearchersByModule = async (module) => {
+  const session = driver.session();
+  const result = await session.run(
+    "MATCH (r:Researcher)-[:WORKS_WITH]->(m:Module {name: $module}) RETURN r.name AS name, r.mainInstitution AS institution, r.module AS module",
+    { module }
+  );
+  session.close();
+  return result.records.map((record) => ({
+    name: record.get("name"),
+    institution: record.get("institution"),
+    module: record.get("module"),
+  }));
+};
 
 // Requête pour récupérer toutes les institutions
 const getInstitutions = async () => {
@@ -25,4 +38,4 @@ const getInstitutions = async () => {
   return institutions.records.map((record) => record.get(0).properties);
 };
 
-export { getResearchersByInstitution, getInstitutions };
+export { getResearchersByInstitution, getInstitutions, getResearchersByModule };
