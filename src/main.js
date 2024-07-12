@@ -20,6 +20,7 @@ L.tileLayer(
 L.svg().addTo(map);
 
 let researcherGroup = null;
+let selectedInstitution = null;
 
 // Fonction pour calculer la taille de l'icône en fonction du nombre de chercheurs
 const calculateIconSize = (numResearchers) => {
@@ -58,11 +59,18 @@ const addMarkers = async () => {
     // Afficher les chercheurs au clic
     marker.on("click", async () => {
       try {
+        // Enregistrer l'institution sélectionnée
+        selectedInstitution = institution;
         // Effacer les chercheurs précédents
         if (researcherGroup) {
           researcherGroup.remove();
         }
-        researcherNetwork(institution, researchers);
+        const selectedModules = getSelectedModules();
+        if (selectedModules.length > 0) {
+          await filterResearchersByModule(selectedModules, institution);
+        } else {
+          researcherNetwork(institution, researchers);
+        }
       } catch (error) {
         console.error("Erreur lors de la récupération des chercheurs:", error);
       }
@@ -86,8 +94,8 @@ const researcherNetwork = (institution, researchers) => {
   const angleStep = (2 * Math.PI) / researchers.length;
   const researcherNodes = researchers.map((researcher, index) => ({
     name: researcher.name,
-    x: instPoint.x + radius * Math.cos(index * angleStep),
-    y: instPoint.y + radius * Math.sin(index * angleStep),
+    x: radius * Math.cos(index * angleStep),
+    y: radius * Math.sin(index * angleStep),
   }));
 
   // Ajouter les liens (edges) entre l'institution et les chercheurs
@@ -98,8 +106,8 @@ const researcherNetwork = (institution, researchers) => {
     .append("line")
     .attr("x1", instPoint.x)
     .attr("y1", instPoint.y)
-    .attr("x2", (d) => d.x)
-    .attr("y2", (d) => d.y)
+    .attr("x2", (d) => instPoint.x + d.x)
+    .attr("y2", (d) => instPoint.y + d.y)
     .attr("stroke", "black")
     .attr("stroke-width", 1);
 
@@ -112,8 +120,8 @@ const researcherNetwork = (institution, researchers) => {
 
   nodes
     .append("circle")
-    .attr("cx", (d) => d.x)
-    .attr("cy", (d) => d.y)
+    .attr("cx", (d) => instPoint.x + d.x)
+    .attr("cy", (d) => instPoint.y + d.y)
     .attr("r", 7)
     .attr("fill", "#61b2e4")
     .attr("opacity", 0.7)
@@ -121,8 +129,8 @@ const researcherNetwork = (institution, researchers) => {
 
   nodes
     .append("rect")
-    .attr("x", (d) => d.x + 9)
-    .attr("y", (d) => d.y - 11)
+    .attr("x", (d) => instPoint.x + d.x + 9)
+    .attr("y", (d) => instPoint.y + d.y - 11)
     .attr("width", (d) => d.name.length * 6.2)
     .attr("height", 14)
     .attr("rx", 5)
@@ -132,13 +140,15 @@ const researcherNetwork = (institution, researchers) => {
 
   nodes
     .append("text")
-    .attr("x", (d) => d.x + 12)
-    .attr("y", (d) => d.y + 2)
+    .attr("x", (d) => instPoint.x + d.x + 12)
+    .attr("y", (d) => instPoint.y + d.y + 2)
     .text((d) => d.name)
     .attr("class", "researcher-label");
 
   // Mettre à jour la position des éléments SVG lors du déplacement ou du zoom de la carte
   const update = () => {
+    if (!researcherGroup) return;
+
     const newInstPoint = map.latLngToLayerPoint([
       institution.latitude,
       institution.longitude,
@@ -148,23 +158,23 @@ const researcherNetwork = (institution, researchers) => {
       .selectAll("line")
       .attr("x1", newInstPoint.x)
       .attr("y1", newInstPoint.y)
-      .attr("x2", (d) => newInstPoint.x + (d.x - instPoint.x))
-      .attr("y2", (d) => newInstPoint.y + (d.y - instPoint.y));
+      .attr("x2", (d) => newInstPoint.x + d.x)
+      .attr("y2", (d) => newInstPoint.y + d.y);
 
     researcherGroup
       .selectAll("circle")
-      .attr("cx", (d) => newInstPoint.x + (d.x - instPoint.x))
-      .attr("cy", (d) => newInstPoint.y + (d.y - instPoint.y));
+      .attr("cx", (d) => newInstPoint.x + d.x)
+      .attr("cy", (d) => newInstPoint.y + d.y);
 
     researcherGroup
       .selectAll("rect")
-      .attr("x", (d) => newInstPoint.x + (d.x - instPoint.x) + 8)
-      .attr("y", (d) => newInstPoint.y + (d.y - instPoint.y) - 10);
+      .attr("x", (d) => newInstPoint.x + d.x + 8)
+      .attr("y", (d) => newInstPoint.y + d.y - 10);
 
     researcherGroup
       .selectAll("text")
-      .attr("x", (d) => newInstPoint.x + (d.x - instPoint.x) + 12)
-      .attr("y", (d) => newInstPoint.y + (d.y - instPoint.y) + 2);
+      .attr("x", (d) => newInstPoint.x + d.x + 12)
+      .attr("y", (d) => newInstPoint.y + d.y + 2);
   };
 
   map.on("zoomend", update);
@@ -173,16 +183,22 @@ const researcherNetwork = (institution, researchers) => {
   update();
 };
 
-// Fonction pour filtrer les chercheurs par module
-const filterResearchersByModule = async (selectedModules) => {
-  // Désélectionner tous les filtres de base
-  document.querySelectorAll(".module-filter").forEach((checkbox) => {
-    checkbox.checked = false;
-  });
+// Fonction pour récupérer les modules sélectionnés
+const getSelectedModules = () => {
+  return Array.from(document.querySelectorAll(".module-filter:checked")).map(
+    (cb) => cb.value
+  );
+};
 
+// Fonction pour filtrer les chercheurs par module
+const filterResearchersByModule = async (
+  selectedModules,
+  institution = null
+) => {
   // Effacer les chercheurs précédents
   if (researcherGroup) {
     researcherGroup.remove();
+    researcherGroup = null;
   }
 
   let filteredResearchers = [];
@@ -192,34 +208,48 @@ const filterResearchersByModule = async (selectedModules) => {
       const researchers = await getResearchersByModule(module);
       filteredResearchers = filteredResearchers.concat(researchers);
     }
-  } else {
-    // Récupérer tous les chercheurs pour chaque institution si aucun filtre sélectionné
-    const institutions = await getInstitutions();
-    for (const institution of institutions) {
-      const researchers = await getResearchersByInstitution(institution.name);
-      filteredResearchers = filteredResearchers.concat(researchers);
-    }
   }
 
-  // Afficher les chercheurs pour chaque institution
-  const institutions = await getInstitutions();
-  institutions.forEach((institution) => {
+  if (institution) {
     const instResearchers = filteredResearchers.filter(
       (r) => r.institution === institution.name
     );
     if (instResearchers.length > 0) {
       researcherNetwork(institution, instResearchers);
     }
-  });
+  } else {
+    const institutions = await getInstitutions();
+    institutions.forEach((institution) => {
+      const instResearchers = filteredResearchers.filter(
+        (r) => r.institution === institution.name
+      );
+      if (instResearchers.length > 0) {
+        researcherNetwork(institution, instResearchers);
+      }
+    });
+  }
 };
 
 // Écouteur pour les filtres de modules
 document.querySelectorAll(".module-filter").forEach((checkbox) => {
   checkbox.addEventListener("change", async () => {
-    const selectedModules = Array.from(
-      document.querySelectorAll(".module-filter:checked")
-    ).map((cb) => cb.value);
-    await filterResearchersByModule(selectedModules);
+    const selectedModules = getSelectedModules();
+    if (selectedModules.length > 0) {
+      await filterResearchersByModule(selectedModules, selectedInstitution);
+    } else if (selectedInstitution) {
+      const researchers = await getResearchersByInstitution(
+        selectedInstitution.name
+      );
+      researcherNetwork(selectedInstitution, researchers);
+    } else {
+      // Si aucun filtre ni institution n'est sélectionné, effacer les chercheurs affichés
+      if (researcherGroup) {
+        researcherGroup.remove();
+        researcherGroup = null;
+        selectedInstitution = null;
+        selectedModules = [];
+      }
+    }
   });
 });
 
@@ -230,6 +260,24 @@ addMarkers();
 map.on("click", () => {
   if (researcherGroup) {
     researcherGroup.remove();
+    researcherGroup = null;
+    selectedInstitution = null;
+  }
+});
+
+// Ajouter un écouteur pour le bouton de réinitialisation des filtres
+document.getElementById("reset-filters").addEventListener("click", () => {
+  document.querySelectorAll(".module-filter").forEach((checkbox) => {
+    checkbox.checked = false;
+  });
+  selectedInstitution = null;
+  if (researcherGroup) {
+    researcherGroup.remove();
+    researcherGroup = null;
+  }
+  if (researcherGroup) {
+    researcherGroup.remove();
+    selectedInstitution = null;
     researcherGroup = null;
   }
 });
