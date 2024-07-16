@@ -18,7 +18,6 @@ const getInstitutionUrls = async () => {
       institutionUrls.push(url);
     });
 
-    console.log("Fetched URLs:", institutionUrls);
     return institutionUrls;
   } catch (error) {
     console.error("Error fetching sitemap:", error);
@@ -26,18 +25,30 @@ const getInstitutionUrls = async () => {
   }
 };
 
+// Liste des URLs à ignorer
+const ignoredUrls = ["https://cibm.ch/team_department/cibm-leadership/"];
+
 // Fonction pour extraire l'institution et le module à partir du nom du département
 const extractSectionFromDepartment = (departmentName) => {
-  const keywords = ["CHUV", "UNIL", "EPFL", "UNIGE", "HUG"];
+  const sections = [
+    "CHUV-UNIL",
+    "UNIL",
+    "EPFL",
+    "HUG-UNIGE",
+    "HUG",
+    "CHUV-EPFL",
+    "UNIGE",
+    "EPFL-UNIGE",
+  ];
   const modules = ["MRI", "EEG", "PET", "SP", "DS"];
 
   let institutions = [];
   let module = "";
 
   // Recherche de l'institution dans le nom du département
-  for (const keyword of keywords) {
-    if (departmentName.includes(keyword)) {
-      institutions.push(keyword);
+  for (const section of sections) {
+    if (departmentName.includes(section)) {
+      institutions.push(section);
     }
   }
 
@@ -76,14 +87,13 @@ const getMemberNamesByDepartment = async (url) => {
           name,
           section,
           mainInstitution,
-          institutions, // Utilisation de toutes les institutions trouvées dans la section
+          institutions, // institutions trouvées dans le nom du département
           module,
         };
         members.push(member);
       }
     });
 
-    console.log(`Members for ${departmentName}:`, members);
     return { department: departmentName, members };
   } catch (error) {
     console.error(`Error fetching member names for ${url}:`, error);
@@ -103,17 +113,16 @@ const getAllMembersByDepartment = async () => {
   const allMembersByDepartment = [];
 
   for (const url of departmentUrls) {
-    console.log(`Processing URL: ${url}`);
+    if (ignoredUrls.includes(url)) {
+      console.log(`Ignoring URL: ${url}`);
+      continue;
+    }
     const { department, members } = await getMemberNamesByDepartment(url);
     if (department && members.length > 0) {
       allMembersByDepartment.push({ department, members });
     }
   }
 
-  console.log(
-    "All Members by Department, Institution, and Module:",
-    allMembersByDepartment
-  );
   return allMembersByDepartment;
 };
 

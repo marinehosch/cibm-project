@@ -18,30 +18,38 @@ const pushMembersToDB = async () => {
         // Vérifier si le membre est un chercheur
         const isResearcher = !!module;
 
+        // Extraire la première partie du nom de l'institution si composite (e.g., "CHUV-UNIL" -> "CHUV")
+        let mainInstitutionName = mainInstitution;
+        if (mainInstitution.includes("-")) {
+          mainInstitutionName = mainInstitution.substring(
+            0,
+            mainInstitution.indexOf("-")
+          );
+        }
+
+        // Créer le noeud pour le membre en tant que Researcher ou Member
         if (isResearcher) {
-          // Créer le noeud pour le membre en tant que Researcher
           await session.run(
             `MERGE (m:Researcher {name: $name})
-             ON CREATE SET m.module = $module, m.section = $section, m.mainInstitution = $mainInstitution, m.isResearcher = $isResearcher
-             ON MATCH SET m.module = $module, m.section = $section, m.mainInstitution = $mainInstitution, m.isResearcher = $isResearcher`,
-            { name, module, section, mainInstitution, isResearcher }
+             ON CREATE SET m.module = $module, m.section = $section, m.mainInstitution = $mainInstitutionName, m.isResearcher = $isResearcher
+             ON MATCH SET m.module = $module, m.section = $section, m.mainInstitution = $mainInstitutionName, m.isResearcher = $isResearcher`,
+            { name, module, section, mainInstitutionName, isResearcher }
           );
         } else {
-          // Créer le noeud pour le membre en tant que Member
           await session.run(
             `MERGE (m:Member {name: $name})
-             ON CREATE SET m.section = $section, m.mainInstitution = $mainInstitution
-             ON MATCH SET m.section = $section, m.mainInstitution = $mainInstitution`,
-            { name, section, mainInstitution }
+             ON CREATE SET m.section = $section, m.mainInstitution = $mainInstitutionName
+             ON MATCH SET m.section = $section, m.mainInstitution = $mainInstitutionName`,
+            { name, section, mainInstitutionName }
           );
         }
 
         // Créer ou récupérer le noeud pour le département
         await session.run(
           `MERGE (d:Department {name: $department})
-           ON CREATE SET d.mainInstitution = $mainInstitution
-           ON MATCH SET d.mainInstitution = $mainInstitution`,
-          { department, mainInstitution }
+           ON CREATE SET d.mainInstitution = $mainInstitutionName
+           ON MATCH SET d.mainInstitution = $mainInstitutionName`,
+          { department, mainInstitutionName }
         );
 
         // Créer la relation entre le Member/Researcher et le département
@@ -68,19 +76,20 @@ const pushMembersToDB = async () => {
         }
 
         // Créer ou récupérer le noeud pour l'institution principale
-        await session.run(`MERGE (i:Institution {name: $mainInstitution})`, {
-          mainInstitution,
-        });
+        await session.run(
+          `MERGE (i:Institution {name: $mainInstitutionName})`,
+          {
+            mainInstitutionName,
+          }
+        );
 
         // Créer la relation entre le Member/Researcher et l'institution principale
         await session.run(
-          `MATCH (m {name: $name}), (i:Institution {name: $mainInstitution})
+          `MATCH (m {name: $name}), (i:Institution {name: $mainInstitutionName})
            MERGE (m)-[:WORKS_FOR]->(i)`,
-          { name, mainInstitution }
+          { name, mainInstitutionName }
         );
       }
-
-      console.log(`Members for ${department} pushed to Neo4j`);
     }
 
     console.log("Data successfully pushed to Neo4j");
