@@ -22,13 +22,13 @@ const getResearchersByInstitution = async () => {
 const getInstitutions = async () => {
   const session = driver.session();
   const institutions = await session.run(
-    "MATCH (n:Institution) RETURN n.latitude, n.longitude, n.name"
+    "MATCH (i:Institution) WHERE NOT i.name CONTAINS '-' AND i.latitude IS NOT NULL RETURN i.latitude AS latitude, i.longitude AS longitude, i.name AS name"
   );
   session.close();
   return institutions.records.map((record) => ({
-    name: record.get("n.name"),
-    latitude: record.get("n.latitude"),
-    longitude: record.get("n.longitude"),
+    name: record.get("name"),
+    latitude: record.get("latitude"),
+    longitude: record.get("longitude"),
   }));
 };
 
