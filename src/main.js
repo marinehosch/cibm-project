@@ -49,6 +49,12 @@ let institutions = [];
 let selectedResearchers = [];
 let selectedInstitutions = [];
 
+// Palette de couleurs personnalisée pour les modules
+const moduleColors = d3
+  .scaleOrdinal()
+  .domain(["MRI", "EEG", "SP", "DS", "PET"])
+  .range(["#304F5A", "#FBB522", "#ADD8E6", "#00008B", "#FFFFFF"]); // Couleurs pour MRI, EEG, SP, DS, PET
+
 // Fonction pour initialiser les données
 const initializeData = async () => {
   try {
@@ -95,12 +101,13 @@ const updateSelectedResearchers = () => {
 
 // Fonction pour afficher les chercheurs sélectionnés autour des institutions
 const displaySelectedResearchers = (selectedResearchers) => {
-  // Supprimer tous les marqueurs et lignes existants
   const overlay = d3.select(map.getPanes().overlayPane).select("svg");
   overlay.selectAll("*").remove();
 
+  // Créer un dictionnaire pour stocker les positions des chercheurs
+  const researcherPositions = {};
+
   if (selectedInstitutions.length === 0) {
-    // Aucun institution sélectionnée, afficher les chercheurs autour de chaque institution
     institutions.forEach((institution) => {
       const institutionResearchers = selectedResearchers.filter(
         (researcher) => researcher.institution === institution.name
@@ -123,29 +130,33 @@ const displaySelectedResearchers = (selectedResearchers) => {
           .attr("cx", x)
           .attr("cy", y)
           .attr("r", 7)
-          .attr("fill", "#61b2e4")
+          .attr("fill", moduleColors(researcher.module))
           .attr("opacity", 0.7)
           .attr("stroke", "grey");
 
-        // overlay
-        //   .append("text")
-        //   .attr("x", x + 12)
-        //   .attr("y", y + 2)
-        //   .text(researcher.name)
-        //   .attr("class", "researcher-label");
+        researcherPositions[researcher.id] = { x, y };
 
-        // Ajouter une ligne entre le chercheur et l'institution
-        overlay
-          .append("line")
-          .attr("x1", x)
-          .attr("y1", y)
-          .attr("x2", center.x)
-          .attr("y2", center.y)
-          .attr("stroke", "grey");
+        // Ajouter une ligne entre les chercheurs du même module
+        institutionResearchers.forEach((target, targetIndex) => {
+          if (index !== targetIndex) {
+            const targetX =
+              center.x + radius * Math.cos(targetIndex * angleStep);
+            const targetY =
+              center.y + radius * Math.sin(targetIndex * angleStep);
+
+            overlay
+              .append("line")
+              .attr("x1", x)
+              .attr("y1", y)
+              .attr("x2", targetX)
+              .attr("y2", targetY)
+              .attr("stroke", moduleColors(researcher.module))
+              .attr("stroke-opacity", 0.5);
+          }
+        });
       });
     });
   } else {
-    // Afficher les chercheurs autour des institutions sélectionnées
     selectedInstitutions.forEach((institutionName) => {
       const institution = institutions.find(
         (inst) => inst.name === institutionName
@@ -171,16 +182,11 @@ const displaySelectedResearchers = (selectedResearchers) => {
           .attr("cx", x)
           .attr("cy", y)
           .attr("r", 7)
-          .attr("fill", "#61b2e4")
+          .attr("fill", moduleColors(researcher.module))
           .attr("opacity", 0.7)
           .attr("stroke", "grey");
 
-        overlay
-          .append("text")
-          .attr("x", x + 12)
-          .attr("y", y + 2)
-          .text(researcher.name)
-          .attr("class", "researcher-label");
+        researcherPositions[researcher.id] = { x, y };
 
         // Ajouter une ligne entre le chercheur et l'institution
         overlay
@@ -190,6 +196,24 @@ const displaySelectedResearchers = (selectedResearchers) => {
           .attr("x2", center.x)
           .attr("y2", center.y)
           .attr("stroke", "black");
+
+        // Ajouter des lignes entre les chercheurs d'institutions différentes
+        selectedResearchers.forEach((otherResearcher) => {
+          if (researcher.institution !== otherResearcher.institution) {
+            const otherPosition = researcherPositions[otherResearcher.id];
+
+            if (otherPosition) {
+              overlay
+                .append("line")
+                .attr("x1", x)
+                .attr("y1", y)
+                .attr("x2", otherPosition.x)
+                .attr("y2", otherPosition.y)
+                .attr("stroke", moduleColors(researcher.module))
+                .attr("stroke-opacity", 0.3);
+            }
+          }
+        });
       });
     });
   }
