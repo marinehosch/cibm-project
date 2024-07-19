@@ -16,7 +16,7 @@ L.tileLayer(
 L.svg().addTo(map);
 
 // Définition de l'icône personnalisée
-const customIcon = (size) =>
+const blueIcon = (size) =>
   L.icon({
     iconUrl: "/src/icons/blue-circle.svg",
     iconSize: size,
@@ -70,6 +70,11 @@ const updateSelectedResearchers = () => {
   if (selectedInstitutions.length === 0 && selectedModules.length === 0) {
     // Aucune institution sélectionnée et aucun filtre de module, ne rien afficher
     selectedResearchers = [];
+  } else if (selectedInstitutions.length === 0) {
+    // Aucun institution sélectionnée, afficher tous les chercheurs filtrés par module
+    selectedResearchers = researchers.filter((researcher) =>
+      selectedModules.includes(researcher.module)
+    );
   } else if (selectedModules.length === 0) {
     // Aucun filtre de module sélectionné, afficher tous les chercheurs autour des institutions sélectionnées
     selectedResearchers = researchers.filter((researcher) =>
@@ -94,49 +99,100 @@ const displaySelectedResearchers = (selectedResearchers) => {
   const overlay = d3.select(map.getPanes().overlayPane).select("svg");
   overlay.selectAll("*").remove();
 
-  selectedResearchers.forEach((researcher, index) => {
-    // Calculer la position autour de l'institution (exemple simplifié, à ajuster selon vos besoins)
-    const institution = institutions.find(
-      (inst) => inst.name === researcher.institution
-    );
-    if (!institution) return;
+  if (selectedInstitutions.length === 0) {
+    // Aucun institution sélectionnée, afficher les chercheurs autour de chaque institution
+    institutions.forEach((institution) => {
+      const institutionResearchers = selectedResearchers.filter(
+        (researcher) => researcher.institution === institution.name
+      );
 
-    const center = map.latLngToLayerPoint([
-      institution.latitude,
-      institution.longitude,
-    ]);
-    const radius = 100;
-    const angleStep = (2 * Math.PI) / selectedResearchers.length;
+      institutionResearchers.forEach((researcher, index) => {
+        const center = map.latLngToLayerPoint([
+          institution.latitude,
+          institution.longitude,
+        ]);
+        const radius = 100;
+        const angleStep = (2 * Math.PI) / institutionResearchers.length;
 
-    const x = center.x + radius * Math.cos(index * angleStep);
-    const y = center.y + radius * Math.sin(index * angleStep);
+        const x = center.x + radius * Math.cos(index * angleStep);
+        const y = center.y + radius * Math.sin(index * angleStep);
 
-    // Ajouter les éléments (cercles, texte) pour chaque chercheur
-    overlay
-      .append("circle")
-      .attr("cx", x)
-      .attr("cy", y)
-      .attr("r", 7)
-      .attr("fill", "#61b2e4")
-      .attr("opacity", 0.7)
-      .attr("stroke", "grey");
+        // Ajouter les éléments (cercles, texte) pour chaque chercheur
+        overlay
+          .append("circle")
+          .attr("cx", x)
+          .attr("cy", y)
+          .attr("r", 7)
+          .attr("fill", "#61b2e4")
+          .attr("opacity", 0.7)
+          .attr("stroke", "grey");
 
-    overlay
-      .append("text")
-      .attr("x", x + 12)
-      .attr("y", y + 2)
-      .text(researcher.name)
-      .attr("class", "researcher-label");
+        // overlay
+        //   .append("text")
+        //   .attr("x", x + 12)
+        //   .attr("y", y + 2)
+        //   .text(researcher.name)
+        //   .attr("class", "researcher-label");
 
-    // Ajouter une ligne entre le chercheur et l'institution
-    overlay
-      .append("line")
-      .attr("x1", x)
-      .attr("y1", y)
-      .attr("x2", center.x)
-      .attr("y2", center.y)
-      .attr("stroke", "black");
-  });
+        // Ajouter une ligne entre le chercheur et l'institution
+        overlay
+          .append("line")
+          .attr("x1", x)
+          .attr("y1", y)
+          .attr("x2", center.x)
+          .attr("y2", center.y)
+          .attr("stroke", "grey");
+      });
+    });
+  } else {
+    // Afficher les chercheurs autour des institutions sélectionnées
+    selectedInstitutions.forEach((institutionName) => {
+      const institution = institutions.find(
+        (inst) => inst.name === institutionName
+      );
+      const institutionResearchers = selectedResearchers.filter(
+        (researcher) => researcher.institution === institution.name
+      );
+
+      institutionResearchers.forEach((researcher, index) => {
+        const center = map.latLngToLayerPoint([
+          institution.latitude,
+          institution.longitude,
+        ]);
+        const radius = 100;
+        const angleStep = (2 * Math.PI) / institutionResearchers.length;
+
+        const x = center.x + radius * Math.cos(index * angleStep);
+        const y = center.y + radius * Math.sin(index * angleStep);
+
+        // Ajouter les éléments (cercles, texte) pour chaque chercheur
+        overlay
+          .append("circle")
+          .attr("cx", x)
+          .attr("cy", y)
+          .attr("r", 7)
+          .attr("fill", "#61b2e4")
+          .attr("opacity", 0.7)
+          .attr("stroke", "grey");
+
+        overlay
+          .append("text")
+          .attr("x", x + 12)
+          .attr("y", y + 2)
+          .text(researcher.name)
+          .attr("class", "researcher-label");
+
+        // Ajouter une ligne entre le chercheur et l'institution
+        overlay
+          .append("line")
+          .attr("x1", x)
+          .attr("y1", y)
+          .attr("x2", center.x)
+          .attr("y2", center.y)
+          .attr("stroke", "black");
+      });
+    });
+  }
 };
 
 // Fonction pour mettre à jour la position des chercheurs et des lignes
@@ -168,7 +224,7 @@ const addInstitutionMarkers = () => {
     const iconSize = calculateIconSize(numResearchers);
 
     const marker = L.marker([institution.latitude, institution.longitude], {
-      icon: customIcon([iconSize, iconSize]), // Taille de l'icône basée sur le nombre de chercheurs
+      icon: blueIcon([iconSize, iconSize]), // Taille de l'icône basée sur le nombre de chercheurs
     })
       .addTo(map)
       .bindPopup(institution.name);
