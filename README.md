@@ -6,7 +6,7 @@ A visualisation of the researchers working at the CIBM, the alumni and partners
 
 ## Description
 
-TB 2024 : visualisation interactive multi-niveau entre chercheurs et technologie. Ce projet est réalisé pour CIBM, EPFL.
+TB 2024 : visualisation interactive multi-niveau entre chercheurs et technologie. Ce projet est réalisé pour le CIBM, EPFL.
 
 ## Prérequis
 
@@ -14,7 +14,7 @@ Assurez-vous d'avoir les logiciels suivants installés sur votre machine :
 
 - [Node.js](https://nodejs.org/) (v14 ou supérieure)
 - [Git](https://git-scm.com/)
-- [Neo4j](https://neo4j.com/download/) (v4 ou supérieure) - Assurez-vous d'avoir une instance Neo4j en cours d'exécution.
+- [Neo4j](https://neo4j.com/download/) (v4 ou supérieure) 
 
 ## Installation
 
