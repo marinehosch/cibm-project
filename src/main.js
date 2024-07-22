@@ -27,8 +27,8 @@ const blueIcon = (size) =>
 // Fonction pour calculer la taille de l'icône en fonction du nombre de chercheurs (semble ne pas fonctionner)
 const calculateIconSize = (numResearchers) => {
   const minSize = 15;
-  const maxSize = 50;
-  const zoom = map.getZoom(); // Récupérer le niveau de zoom actuel de la carte
+  const maxSize = 70;
+  const zoom = map.getZoom();
 
   if (zoom < 12) {
     return Math.min(maxSize, minSize + numResearchers * 1.5);
@@ -195,24 +195,40 @@ const displaySelectedResearchers = (selectedResearchers) => {
           .attr("y1", y)
           .attr("x2", center.x)
           .attr("y2", center.y)
-          .attr("stroke", "black");
+          .attr("stroke", "grey");
 
-        // Ajouter des lignes entre les chercheurs d'institutions différentes (doesn't work!)
-        selectedResearchers.forEach((otherResearcher) => {
-          if (researcher.institution !== otherResearcher.institution) {
-            const otherPosition = researcherPositions[otherResearcher.id];
+        // Lier les chercheurs travaillant avec le même module
+        const selectedModules = Array.from(
+          document.querySelectorAll(".module-filter:checked")
+        ).map((cb) => cb.value);
 
-            if (otherPosition) {
-              overlay
-                .append("line")
-                .attr("x1", x)
-                .attr("y1", y)
-                .attr("x2", otherPosition.x)
-                .attr("y2", otherPosition.y)
-                .attr("stroke", moduleColors(researcher.module))
-                .attr("stroke-opacity", 0.3);
-            }
-          }
+        const nodes = selectedResearchers.filter(
+          (r) => r.institution === institution.name
+        );
+
+        const link = selectedModules.reduce((acc, module) => {
+          const moduleResearchers = nodes.filter((r) => r.module === module);
+          return acc.concat(
+            moduleResearchers.map((r, i) => ({
+              source: nodes.indexOf(r),
+              target: nodes.indexOf(r) + i + 1,
+            }))
+          );
+        }, []);
+
+        // Ajouter les lignes entre les chercheurs du même module
+        link.forEach((l) => {
+          const source = researcherPositions[l.source];
+          const target = researcherPositions[l.target];
+
+          overlay
+            .append("line")
+            .attr("x1", source.x)
+            .attr("y1", source.y)
+            .attr("x2", target.x)
+            .attr("y2", target.y)
+            .attr("stroke", moduleColors(researcher.module))
+            .attr("stroke-opacity", 0.5);
         });
       });
     });
@@ -248,10 +264,16 @@ const addInstitutionMarkers = () => {
     const iconSize = calculateIconSize(numResearchers);
 
     const marker = L.marker([institution.latitude, institution.longitude], {
-      icon: blueIcon([iconSize, iconSize]), // Taille de l'icône basée sur le nombre de chercheurs
+      icon: blueIcon([iconSize, iconSize]),
     })
       .addTo(map)
-      .bindPopup(institution.name);
+      .bindPopup(institution.name)
+      .openPopup();
+
+    // Afficher les institutions au hover
+    marker.on("mouseover", () => {
+      marker.openPopup();
+    });
 
     marker.on("click", () => {
       // Mettre à jour la liste des institutions sélectionnées
@@ -285,3 +307,128 @@ initializeData().then(() => {
   addInstitutionMarkers(); // Ajouter les marqueurs d'institution à la carte
   setupFilters(); // Initialiser les filtres des modules
 });
+
+// Fonction pour créer un graphique de réseau avec D3.js
+// cosnt createNetworkChart = (data) => {
+
+// const createNetworkChart = (data) => {
+//   const width = 928;
+//   const height = 600;
+
+//   const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+//   const links = data.links.map((d) => ({ ...d }));
+//   const nodes = data.nodes.map((d) => ({ ...d }));
+
+//   const simulation = d3
+//     .forceSimulation(nodes)
+//     .force(
+//       "link",
+//       d3.forceLink(links).id((d) => d.id)
+//     )
+//     .force("charge", d3.forceManyBody())
+//     .force("center", d3.forceCenter(width / 2, height / 2))
+//     .on("tick", ticked);
+
+//   const svg = d3
+//     .create("svg")
+//     .attr("width", width)
+//     .attr("height", height)
+//     .attr("viewBox", [0, 0, width, height])
+//     .attr("style", "max-width: 100%; height: auto;");
+
+//   const link = svg
+//     .append("g")
+//     .attr("stroke", "#999")
+//     .attr("stroke-opacity", 0.6)
+//     .selectAll("line")
+//     .data(links)
+//     .join("line")
+//     .attr("stroke-width", (d) => Math.sqrt(d.value));
+
+//   const node = svg
+//     .append("g")
+//     .attr("stroke", "#fff")
+//     .attr("stroke-width", 1.5)
+//     .selectAll("circle")
+//     .data(nodes)
+//     .join("circle")
+//     .attr("r", 5)
+//     .attr("fill", (d) => color(d.group))
+//     .call(
+//       d3
+//         .drag()
+//         .on("start", dragstarted)
+//         .on("drag", dragged)
+//         .on("end", dragended)
+//     );
+
+//   node.append("title").text((d) => d.id);
+
+//   function ticked() {
+//     link
+//       .attr("x1", (d) => d.source.x)
+//       .attr("y1", (d) => d.source.y)
+//       .attr("x2", (d) => d.target.x)
+//       .attr("y2", (d) => d.target.y);
+
+//     node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+//   }
+
+//   function dragstarted(event) {
+//     if (!event.active) simulation.alphaTarget(0.3).restart();
+//     event.subject.fx = event.subject.x;
+//     event.subject.fy = event.subject.y;
+//   }
+
+//   function dragged(event) {
+//     event.subject.fx = event.x;
+//     event.subject.fy = event.y;
+//   }
+
+//   function dragended(event) {
+//     if (!event.active) simulation.alphaTarget(0);
+//     event.subject.fx = null;
+//     event.subject.fy = null;
+//   }
+
+//   return svg.node();
+// };
+
+// // Fonction pour obtenir les données des chercheurs et institutions, et générer le graphique de réseau
+// const initializeNetworkChart = async () => {
+//   try {
+//     const researchers = await getResearchersByInstitution();
+//     const institutions = await getInstitutions();
+
+//     // Créer des nœuds pour chaque chercheur
+//     const nodes = researchers.map((r) => ({
+//       id: r.name,
+//       group: r.module,
+//     }));
+
+//     // Créer des liens entre les chercheurs qui partagent le même module
+//     const links = [];
+//     researchers.forEach((source, index) => {
+//       researchers.forEach((target, targetIndex) => {
+//         if (index !== targetIndex && source.module === target.module) {
+//           links.push({
+//             source: source.name,
+//             target: target.name,
+//             value: 1, // Vous pouvez ajuster la valeur en fonction de la force de la connexion
+//           });
+//         }
+//       });
+//     });
+
+//     // Générer et afficher le graphique de réseau
+//     const data = { nodes, links };
+//     const chart = createNetworkChart(data);
+//     document.getElementById("map").appendChild(chart);
+//   } catch (error) {
+//     console.error("Error initializing network chart:", error);
+//   }
+// };
+
+// // Appel de l'initialisation du graphique de réseau
+// initializeNetworkChart();
