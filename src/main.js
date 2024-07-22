@@ -24,7 +24,7 @@ const blueIcon = (size) =>
     popupAnchor: [0, -size[1]],
   });
 
-// Fonction pour calculer la taille de l'icône en fonction du nombre de chercheurs
+// Fonction pour calculer la taille de l'icône en fonction du nombre de chercheurs (semble ne pas fonctionner)
 const calculateIconSize = (numResearchers) => {
   const minSize = 15;
   const maxSize = 50;
@@ -67,7 +67,7 @@ const initializeData = async () => {
   }
 };
 
-// Fonction pour mettre à jour les chercheurs sélectionnés en fonction des institutions et des filtres de module
+// Fonction pour mettre à jour les chercheurs sélectionnés en fonction des institutions et des modules
 const updateSelectedResearchers = () => {
   const selectedModules = Array.from(
     document.querySelectorAll(".module-filter:checked")
@@ -104,7 +104,7 @@ const displaySelectedResearchers = (selectedResearchers) => {
   const overlay = d3.select(map.getPanes().overlayPane).select("svg");
   overlay.selectAll("*").remove();
 
-  // Créer un dictionnaire pour stocker les positions des chercheurs
+  // Créer un tableau pour stocker les positions des chercheurs
   const researcherPositions = {};
 
   if (selectedInstitutions.length === 0) {
@@ -124,7 +124,7 @@ const displaySelectedResearchers = (selectedResearchers) => {
         const x = center.x + radius * Math.cos(index * angleStep);
         const y = center.y + radius * Math.sin(index * angleStep);
 
-        // Ajouter les éléments (cercles, texte) pour chaque chercheur
+        // Ajouter les éléments (cercles, textes) pour chaque chercheur (stop texte pour le visuel)
         overlay
           .append("circle")
           .attr("cx", x)
@@ -197,7 +197,7 @@ const displaySelectedResearchers = (selectedResearchers) => {
           .attr("y2", center.y)
           .attr("stroke", "black");
 
-        // Ajouter des lignes entre les chercheurs d'institutions différentes
+        // Ajouter des lignes entre les chercheurs d'institutions différentes (doesn't work!)
         selectedResearchers.forEach((otherResearcher) => {
           if (researcher.institution !== otherResearcher.institution) {
             const otherPosition = researcherPositions[otherResearcher.id];
@@ -241,7 +241,7 @@ const addInstitutionMarkers = () => {
   institutions.forEach((institution) => {
     if (!institution.latitude || !institution.longitude) return;
 
-    // Calculer la taille de l'icône en fonction du nombre de chercheurs
+    // Calculer la taille de l'icône en fonction du nombre de chercheurs dans l'institution
     const numResearchers = researchers.filter(
       (r) => r.institution === institution.name
     ).length;
@@ -283,5 +283,5 @@ const setupFilters = () => {
 // Appel de l'initialisation de la carte et des données
 initializeData().then(() => {
   addInstitutionMarkers(); // Ajouter les marqueurs d'institution à la carte
-  setupFilters(); // Initialiser les filtres de module
+  setupFilters(); // Initialiser les filtres des modules
 });
