@@ -24,7 +24,7 @@ const blueIcon = (size) =>
     popupAnchor: [0, -size[1]],
   });
 
-// Fonction pour calculer la taille de l'icône en fonction du nombre de chercheurs (semble ne pas fonctionner)
+// Fonction pour calculer la taille de l'icône en fonction du nombre de chercheurs
 const calculateIconSize = (numResearchers) => {
   const minSize = 15;
   const maxSize = 70;
@@ -53,7 +53,7 @@ let selectedInstitutions = [];
 const moduleColors = d3
   .scaleOrdinal()
   .domain(["MRI", "EEG", "SP", "DS", "PET"])
-  .range(["#304F5A", "#FBB522", "#ADD8E6", "#00008B", "#FFFFFF"]); // Couleurs pour MRI, EEG, SP, DS, PET
+  .range(["#304F5A", "#FBB522", "#ADD8E6", "#00008B", "#FFFFFF"]);
 
 // Fonction pour initialiser les données
 const initializeData = async () => {
@@ -66,6 +66,36 @@ const initializeData = async () => {
     return { researchers: [], institutions: [] };
   }
 };
+
+// Créer un tableau qui stocke les chercheurs par module
+let researchersByModule = researchers.reduce((acc, researcher) => {
+  if (!acc[researcher.module]) {
+    acc[researcher.module] = [];
+  }
+  acc[researcher.module].push(researcher);
+  return acc;
+}, {});
+
+// Créer un tableau qui stocke les liens entre les chercheurs d'un même groupe
+let links = [];
+Object.values(researchersByModule).forEach((group) => {
+  for (let i = 0; i < group.length; i++) {
+    for (let j = i + 1; j < group.length; j++) {
+      links.push({ source: group[i], target: group[j] });
+    }
+  }
+});
+console.log(links);
+
+// Ajouter les liens à l'overlay de la carte
+const overlay = d3.select(map.getPanes().overlayPane).select("svg");
+const link = overlay
+  .append("g")
+  .attr("stroke", "#999")
+  .attr("stroke-opacity", 0.6)
+  .selectAll("line")
+  .data(links)
+  .join("line");
 
 // Fonction pour mettre à jour les chercheurs sélectionnés en fonction des institutions et des modules
 const updateSelectedResearchers = () => {
@@ -92,6 +122,8 @@ const updateSelectedResearchers = () => {
       (researcher) =>
         selectedInstitutions.includes(researcher.institution) &&
         selectedModules.includes(researcher.module)
+      ////////ajouter le graphique de réseau en fonction des modules
+      // initializeNetworkChart();
     );
   }
 
@@ -103,9 +135,6 @@ const updateSelectedResearchers = () => {
 const displaySelectedResearchers = (selectedResearchers) => {
   const overlay = d3.select(map.getPanes().overlayPane).select("svg");
   overlay.selectAll("*").remove();
-
-  // Créer un tableau pour stocker les positions des chercheurs
-  const researcherPositions = {};
 
   if (selectedInstitutions.length === 0) {
     institutions.forEach((institution) => {
@@ -124,7 +153,7 @@ const displaySelectedResearchers = (selectedResearchers) => {
         const x = center.x + radius * Math.cos(index * angleStep);
         const y = center.y + radius * Math.sin(index * angleStep);
 
-        // Ajouter les éléments (cercles, textes) pour chaque chercheur (stop texte pour le visuel)
+        // Ajouter les éléments (cercles, textes) pour chaque chercheur
         overlay
           .append("circle")
           .attr("cx", x)
@@ -134,9 +163,6 @@ const displaySelectedResearchers = (selectedResearchers) => {
           .attr("opacity", 0.7)
           .attr("stroke", "grey");
 
-        researcherPositions[researcher.id] = { x, y };
-
-        // Ajouter une ligne entre les chercheurs du même module
         institutionResearchers.forEach((target, targetIndex) => {
           if (index !== targetIndex) {
             const targetX =
@@ -186,8 +212,6 @@ const displaySelectedResearchers = (selectedResearchers) => {
           .attr("opacity", 0.7)
           .attr("stroke", "grey");
 
-        researcherPositions[researcher.id] = { x, y };
-
         // Ajouter une ligne entre le chercheur et l'institution
         overlay
           .append("line")
@@ -196,40 +220,6 @@ const displaySelectedResearchers = (selectedResearchers) => {
           .attr("x2", center.x)
           .attr("y2", center.y)
           .attr("stroke", "grey");
-
-        // Lier les chercheurs travaillant avec le même module
-        const selectedModules = Array.from(
-          document.querySelectorAll(".module-filter:checked")
-        ).map((cb) => cb.value);
-
-        const nodes = selectedResearchers.filter(
-          (r) => r.institution === institution.name
-        );
-
-        const link = selectedModules.reduce((acc, module) => {
-          const moduleResearchers = nodes.filter((r) => r.module === module);
-          return acc.concat(
-            moduleResearchers.map((r, i) => ({
-              source: nodes.indexOf(r),
-              target: nodes.indexOf(r) + i + 1,
-            }))
-          );
-        }, []);
-
-        // Ajouter les lignes entre les chercheurs du même module
-        link.forEach((l) => {
-          const source = researcherPositions[l.source];
-          const target = researcherPositions[l.target];
-
-          overlay
-            .append("line")
-            .attr("x1", source.x)
-            .attr("y1", source.y)
-            .attr("x2", target.x)
-            .attr("y2", target.y)
-            .attr("stroke", moduleColors(researcher.module))
-            .attr("stroke-opacity", 0.5);
-        });
       });
     });
   }
@@ -309,126 +299,138 @@ initializeData().then(() => {
 });
 
 // Fonction pour créer un graphique de réseau avec D3.js
-// cosnt createNetworkChart = (data) => {
+const createNetworkChart = (data) => {
+  const width = 928;
+  const height = 600;
 
-// const createNetworkChart = (data) => {
-//   const width = 928;
-//   const height = 600;
+  const color = d3.scaleOrdinal(d3.schemeCategory10);
 
-//   const color = d3.scaleOrdinal(d3.schemeCategory10);
+  const links = data.links.map((d) => ({ ...d }));
+  const nodes = data.nodes.map((d) => ({ ...d }));
 
-//   const links = data.links.map((d) => ({ ...d }));
-//   const nodes = data.nodes.map((d) => ({ ...d }));
+  const simulation = d3
+    .forceSimulation(nodes)
+    .force(
+      "link",
+      d3.forceLink(links).id((d) => d.id)
+    )
+    .force("charge", d3.forceManyBody())
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .on("tick", ticked);
 
-//   const simulation = d3
-//     .forceSimulation(nodes)
-//     .force(
-//       "link",
-//       d3.forceLink(links).id((d) => d.id)
-//     )
-//     .force("charge", d3.forceManyBody())
-//     .force("center", d3.forceCenter(width / 2, height / 2))
-//     .on("tick", ticked);
+  const svg = d3
+    .create("svg")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("viewBox", [0, 0, width, height])
+    .attr("style", "max-width: 100%; height: auto;");
 
-//   const svg = d3
-//     .create("svg")
-//     .attr("width", width)
-//     .attr("height", height)
-//     .attr("viewBox", [0, 0, width, height])
-//     .attr("style", "max-width: 100%; height: auto;");
+  const link = svg
+    .append("g")
+    .attr("stroke", "#999")
+    .attr("stroke-opacity", 0.6)
+    .selectAll("line")
+    .data(links)
+    .join("line")
+    .attr("stroke-width", (d) => Math.sqrt(d.value));
 
-//   const link = svg
-//     .append("g")
-//     .attr("stroke", "#999")
-//     .attr("stroke-opacity", 0.6)
-//     .selectAll("line")
-//     .data(links)
-//     .join("line")
-//     .attr("stroke-width", (d) => Math.sqrt(d.value));
+  const node = svg
+    .append("g")
+    .attr("stroke", "#fff")
+    .attr("stroke-width", 1.5)
+    .selectAll("circle")
+    .data(nodes)
+    .join("circle")
+    .attr("r", 5)
+    .attr("fill", (d) => color(d.group))
+    .call(
+      d3
+        .drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended)
+    );
 
-//   const node = svg
-//     .append("g")
-//     .attr("stroke", "#fff")
-//     .attr("stroke-width", 1.5)
-//     .selectAll("circle")
-//     .data(nodes)
-//     .join("circle")
-//     .attr("r", 5)
-//     .attr("fill", (d) => color(d.group))
-//     .call(
-//       d3
-//         .drag()
-//         .on("start", dragstarted)
-//         .on("drag", dragged)
-//         .on("end", dragended)
-//     );
+  node.append("title").text((d) => d.id);
 
-//   node.append("title").text((d) => d.id);
+  function ticked() {
+    link
+      .attr("x1", (d) => d.source.x)
+      .attr("y1", (d) => d.source.y)
+      .attr("x2", (d) => d.target.x)
+      .attr("y2", (d) => d.target.y);
 
-//   function ticked() {
-//     link
-//       .attr("x1", (d) => d.source.x)
-//       .attr("y1", (d) => d.source.y)
-//       .attr("x2", (d) => d.target.x)
-//       .attr("y2", (d) => d.target.y);
+    node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+  }
 
-//     node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
-//   }
+  function dragstarted(event) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    event.subject.fx = event.subject.x;
+    event.subject.fy = event.subject.y;
+  }
 
-//   function dragstarted(event) {
-//     if (!event.active) simulation.alphaTarget(0.3).restart();
-//     event.subject.fx = event.subject.x;
-//     event.subject.fy = event.subject.y;
-//   }
+  function dragged(event) {
+    event.subject.fx = event.x;
+    event.subject.fy = event.y;
+  }
 
-//   function dragged(event) {
-//     event.subject.fx = event.x;
-//     event.subject.fy = event.y;
-//   }
+  function dragended(event) {
+    if (!event.active) simulation.alphaTarget(0);
+    event.subject.fx = null;
+    event.subject.fy = null;
+  }
 
-//   function dragended(event) {
-//     if (!event.active) simulation.alphaTarget(0);
-//     event.subject.fx = null;
-//     event.subject.fy = null;
-//   }
+  return svg.node();
+};
 
-//   return svg.node();
-// };
+// Fonction pour obtenir les données des chercheurs et institutions, et générer le graphique de réseau
+const initializeNetworkChart = async () => {
+  try {
+    const researchers = await getResearchersByInstitution();
+    const institutions = await getInstitutions();
 
-// // Fonction pour obtenir les données des chercheurs et institutions, et générer le graphique de réseau
-// const initializeNetworkChart = async () => {
-//   try {
-//     const researchers = await getResearchersByInstitution();
-//     const institutions = await getInstitutions();
+    // Créer des nœuds pour chaque chercheur
+    const nodes = researchers.map((r) => ({
+      id: r.name,
+      group: r.module,
+    }));
 
-//     // Créer des nœuds pour chaque chercheur
-//     const nodes = researchers.map((r) => ({
-//       id: r.name,
-//       group: r.module,
-//     }));
+    // Créer des liens entre les chercheurs qui partagent le même module
+    const links = [];
+    researchers.forEach((source, index) => {
+      researchers.forEach((target, targetIndex) => {
+        if (index !== targetIndex && source.module === target.module) {
+          links.push({
+            source: source.name,
+            target: target.name,
+            value: 1, // valeur déterminant la force de connexion
+          });
+        }
+      });
+    });
 
-//     // Créer des liens entre les chercheurs qui partagent le même module
-//     const links = [];
-//     researchers.forEach((source, index) => {
-//       researchers.forEach((target, targetIndex) => {
-//         if (index !== targetIndex && source.module === target.module) {
-//           links.push({
-//             source: source.name,
-//             target: target.name,
-//             value: 1, // Vous pouvez ajuster la valeur en fonction de la force de la connexion
-//           });
-//         }
-//       });
-//     });
+    //placer les noeuds autour des institution et remplacer les existants
+    // const overlay = d3.select(map.getPanes().overlayPane).select("svg");
+    // overlay.selectAll("*").remove();
 
-//     // Générer et afficher le graphique de réseau
-//     const data = { nodes, links };
-//     const chart = createNetworkChart(data);
-//     document.getElementById("map").appendChild(chart);
-//   } catch (error) {
-//     console.error("Error initializing network chart:", error);
-//   }
-// };
+    // Ajouter les liens à l'overlay de la carte
+    const overlay = d3.select(map.getPanes().overlayPane).select("svg");
+    const link = overlay
+      .append("g")
+      .attr("stroke", "#999")
+      .attr("stroke-opacity", 0.6)
+      .selectAll("line")
+      .data(links)
+      .join("line");
 
-// // Appel de l'initialisation du graphique de réseau
-// initializeNetworkChart();
+    // Générer et afficher le graphique de réseau
+    const data = { nodes, links };
+    const chart = createNetworkChart(data);
+    document.getElementById("map").appendChild(chart); //////// changer ici pour append sur la carte et pas dans la meme balise !
+  } catch (error) {
+    console.error("Error initializing network chart:", error);
+  }
+};
+
+// Appel de l'initialisation du graphique de réseau
+initializeNetworkChart();
