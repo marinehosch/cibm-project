@@ -9,12 +9,19 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
-   
 </head>
 
 <body>
-    <h1>CIBM Community</h1>
-    <h2>Carte</h2>
+    <header>
+        <div class="header-content">
+            <img src="/src/icons/Logo-CIBM_web.png" alt="CIBM Logo" class="logo">
+            <div class="title-container">
+                <h1>CIBM Community Visualization</h1>
+                <p class="subtitle">Explore the network of researchers, scientists, and experts collaborating within the
+                    CIBM community.</p>
+            </div>
+        </div>
+    </header>
     <div class="container">
         <div id="map">
             <div class="legend">
@@ -36,7 +43,6 @@
                 <label><input type="checkbox" value="DS" class="module-filter" /> DS</label>
                 <label><input type="checkbox" value="PET" class="module-filter" /> PET</label>
                 <button id="reset-filters">Reset Filters</button>
-
             </div>
             <div class="section">
                 <strong>Section</strong>
@@ -47,6 +53,47 @@
                 <label><input type="checkbox" value="" class="" /> bhbhb</label>
             </div>
         </div>
+    </div>
+    <div class="description">
+        <h3>About the CIBM Community Map</h3>
+        <p>
+            The CIBM Community Map visualizes the network of experts in the field of biomedical imaging, promoting
+            interaction within and beyond the founding partner institutions. The map shows the locations of CIBM Core
+            members, who are involved in daily activities such as research, teaching, and service, as well as Affiliate
+            and Associate members collaborating through joint projects.
+        </p>
+        <p>
+            By interacting with the map, you can explore the connections and collaborations within the CIBM Community.
+            Click on institution markers to see the researchers associated with that institution. Use the filters to
+            view researchers by their specialized modules: MRI, EEG, SP, DS, and PET.
+        </p>
+        <h3>Purpose of this Visualization</h3>
+        <p>
+            The purpose of this visualization is to showcase the CIBM community and the people working together. CIBM
+            constitutes a network of well-recognized experts in the field of biomedical imaging and promotes interaction
+            within and beyond the founding partner institutions. The members of the CIBM Community are researchers,
+            scientists, engineers, technicians, and clinicians from academia, industry, and hospitals in Switzerland and
+            throughout the globe. The CIBM Core members are those who are leading and involved in the day-to-day
+            activities of the Center such as research, teaching, and service by providing their expertise and access to
+            the CIBM infrastructure. The CIBM Affiliate and Associate members are those closely collaborating with CIBM
+            Core members through joint projects, PhD supervision, and grants. The CIBM Affiliate members include
+            students and employees affiliated with the five founding partner institutions CHUV, UNIL, EPFL, UNIGE, and
+            HUG, whereas the CIBM Associate members are students and employees affiliated with other partner
+            institutions. The CIBM Alumni members are all past CIBM Core members.
+        </p>
+        <h3>Technologies</h3>
+        <ul>
+            <li><strong>MRI (Magnetic Resonance Imaging)</strong>: A technique that uses strong magnetic fields and
+                radio waves to generate detailed images of the organs and tissues in the body.</li>
+            <li><strong>EEG (Electroencephalography)</strong>: A method to record electrical activity of the brain using
+                sensors placed on the scalp.</li>
+            <li><strong>SP (Signal Processing)</strong>: The analysis, interpretation, and manipulation of signals.
+                Signals can be audio, video, temperature, etc., often used in various forms of data analysis.</li>
+            <li><strong>DS (Data Science)</strong>: A multi-disciplinary field that uses scientific methods, processes,
+                algorithms, and systems to extract knowledge and insights from structured and unstructured data.</li>
+            <li><strong>PET (Positron Emission Tomography)</strong>: An imaging test that helps reveal how your tissues
+                and organs are functioning, using a radioactive drug (tracer) to show this activity.</li>
+        </ul>
     </div>
     <script type="module" src="src/neo4j.js"></script>
     <script type="module" src="src/main.js"></script>

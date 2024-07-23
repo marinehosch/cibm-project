@@ -1,4 +1,81 @@
-/* Reset default styles */
+header {
+    background: #ffffff;
+    /* White background for the header */
+    padding: 20px 0;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.logo {
+    width: 100px;
+    /* Adjust size of the logo as needed */
+    height: auto;
+    margin-right: 20px;
+}
+
+h1 {
+    font-size: 2.5em;
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+}
+
+.subtitle {
+    font-size: 1.2em;
+    margin-top: 10px;
+    font-family: 'Arial', sans-serif;
+    font-weight: 300;
+    color: #0071B2;
+    line-height: 1.4;
+}
+
+
+#map {
+    width: 70%;
+    height: 600px;
+    position: relative;
+}
+
+#filter-container {
+    width: 25%;
+}
+
+.legend {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px 0;
+}
+
+.legend h3 {
+    margin-top: 0;
+    color: #304F5A;
+    font-size: 1.5em;
+}
+
+.legend div {
+    margin: 5px 0;
+}
+
+.legend span {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    vertical-align: middle;
+}
 * {
     margin: 0;
     padding: 0;
@@ -32,7 +109,7 @@ a {
 #map {
     margin: 0 auto;
     width: 20cm;
-    height: 13cm;
+    height: 20cm;
     border: 1px solid black;
     z-index: 1;
 }
@@ -181,10 +258,40 @@ h3 {
 #filter-container .section {
     margin-bottom: 15px;
 }
-.d3-tip {
-    position: absolute;
-    background: #fff;
+
+
+.description {
+    margin: 20px;
+    padding: 20px;
+    background-color: #f9f9f9;
     border: 1px solid #ddd;
-    padding: 5px;
-    pointer-events: none;
+    border-radius: 5px;
+    font-family: Arial, sans-serif;
+    color: #333;
+}
+
+.description h3 {
+    margin-top: 0;
+    color: #304F5A;
+    font-size: 1.5em;
+}
+
+.description p {
+    line-height: 1.6;
+    margin: 10px 0;
+}
+
+.description ul {
+    list-style-type: disc;
+    padding-left: 20px;
+    margin: 10px 0;
+}
+
+.description li {
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
+
+.description strong {
+    color: #00008B;
 }

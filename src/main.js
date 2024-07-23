@@ -3,7 +3,7 @@ import { getInstitutions, getResearchersByInstitution } from "./getDB.js";
 import * as d3 from "d3";
 
 // Initialisation de la carte Leaflet
-const map = L.map("map").setView([46.51999710099841, 6.569531292590334], 13);
+const map = L.map("map").setView([46.51999710099841, 6.569531292590334], 12);
 L.tileLayer(
   "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png",
   {
@@ -135,9 +135,10 @@ const displaySelectedResearchers = (selectedResearchers) => {
       .text(
         `${researcher.name}, ${researcher.module}, ${researcher.institution}`
       )
-      .attr("font-size", "10px")
+      .attr("font-size", "12px")
       .attr("fill", "black")
-      .attr("font-family", "sans-serif");
+      .attr("font-weight", "bold")
+      .attr("font-family", "Arial");
     //ajouter un évènement pour afficher le texte au survol - marche pas
     // circle.on("mouseover", () => {
     //   text.attr("visibility", "visible");
@@ -152,7 +153,7 @@ const displaySelectedResearchers = (selectedResearchers) => {
       `rotate(${(index * 360) / selectedResearchers.length}, ${x}, ${y})`
     );
     //faire disparaitre le texte au zoomout
-    if (map.getZoom() < 14) {
+    if (map.getZoom() < 12) {
       text.attr("visibility", "hidden");
     } else {
       text.attr("visibility", "visible");
