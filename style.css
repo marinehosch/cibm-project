@@ -181,3 +181,10 @@ h3 {
 #filter-container .section {
     margin-bottom: 15px;
 }
+.d3-tip {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 5px;
+    pointer-events: none;
+}

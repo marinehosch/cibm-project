@@ -15,6 +15,8 @@ L.tileLayer(
 
 L.svg().addTo(map);
 
+const svgLayer = d3.select(map.getPanes().overlayPane).select("svg");
+
 // Définition de l'icône personnalisée
 const blueIcon = (size) =>
   L.icon({
@@ -96,8 +98,7 @@ const updateSelectedResearchers = () => {
 
 // Fonction pour afficher les chercheurs sélectionnés autour des institutions
 const displaySelectedResearchers = (selectedResearchers) => {
-  const overlay = d3.select(map.getPanes().overlayPane).select("svg");
-  overlay.selectAll("*").remove();
+  svgLayer.selectAll("*").remove();
 
   const institutionMap = new Map(institutions.map((inst) => [inst.name, inst]));
 
@@ -118,7 +119,7 @@ const displaySelectedResearchers = (selectedResearchers) => {
     const y = center.y + radius * Math.sin(index * angleStep);
 
     // Ajouter les éléments (cercles) pour chaque chercheur
-    overlay
+    const circle = svgLayer
       .append("circle")
       .attr("cx", x)
       .attr("cy", y)
@@ -127,25 +128,66 @@ const displaySelectedResearchers = (selectedResearchers) => {
       .attr("opacity", 0.7)
       .attr("stroke", "grey");
 
+    const text = svgLayer
+      .append("text")
+      .attr("x", x + 10)
+      .attr("y", y + 5)
+      .text(
+        `${researcher.name}, ${researcher.module}, ${researcher.institution}`
+      )
+      .attr("font-size", "10px")
+      .attr("fill", "black")
+      .attr("font-family", "sans-serif");
+    //ajouter un évènement pour afficher le texte au survol - marche pas
+    circle.on("mouseover", () => {
+      text.attr("visibility", "visible");
+    });
+    circle.on("mouseout", () => {
+      text.attr("visibility", "hidden");
+    });
+
     researcher.x = x;
     researcher.y = y;
   });
 
-  // Ajout des liens entre chercheurs partageant le même module
-  const moduleGroups = d3.group(selectedResearchers, (d) => d.module);
-  moduleGroups.forEach((group, module) => {
-    for (let i = 0; i < group.length; i++) {
-      for (let j = i + 1; j < group.length; j++) {
-        overlay
-          .append("line")
-          .attr("x1", group[i].x)
-          .attr("y1", group[i].y)
-          .attr("x2", group[j].x)
-          .attr("y2", group[j].y)
-          .attr("stroke", moduleColors(module))
-          .attr("stroke-opacity", 0.5);
+  // Regrouper les liens entre chercheurs partageant le même module
+  const linkMap = new Map();
+
+  selectedResearchers.forEach((source) => {
+    selectedResearchers.forEach((target) => {
+      if (source !== target && source.module === target.module) {
+        const key = [source.x, source.y, target.x, target.y].sort().join(",");
+        if (!linkMap.has(key)) {
+          linkMap.set(key, {
+            count: 0,
+            x1: source.x,
+            y1: source.y,
+            x2: target.x,
+            y2: target.y,
+          });
+        }
+        linkMap.get(key).count += 1;
       }
-    }
+    });
+  });
+
+  // Dessiner les liens regroupés
+  linkMap.forEach((link, key) => {
+    const { count, x1, y1, x2, y2 } = link;
+    svgLayer
+      .append("line")
+      .attr("x1", x1)
+      .attr("y1", y1)
+      .attr("x2", x2)
+      .attr("y2", y2)
+      .attr(
+        "stroke",
+        moduleColors(
+          selectedResearchers.find((r) => r.x === x1 && r.y === y1).module
+        )
+      )
+      .attr("stroke-opacity", Math.min(1, count / 10))
+      .attr("stroke-width", Math.min(5, count));
   });
 };
 
