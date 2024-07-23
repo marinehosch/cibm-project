@@ -139,12 +139,24 @@ const displaySelectedResearchers = (selectedResearchers) => {
       .attr("fill", "black")
       .attr("font-family", "sans-serif");
     //ajouter un évènement pour afficher le texte au survol - marche pas
-    circle.on("mouseover", () => {
-      text.attr("visibility", "visible");
-    });
-    circle.on("mouseout", () => {
+    // circle.on("mouseover", () => {
+    //   text.attr("visibility", "visible");
+    // });
+    // circle.on("mouseout", () => {
+    //   text.attr("visibility", "hidden");
+    // });
+
+    //ajouter une rotation au texte pour qu'il soit lisible
+    text.attr(
+      "transform",
+      `rotate(${(index * 360) / selectedResearchers.length}, ${x}, ${y})`
+    );
+    //faire disparaitre le texte au zoomout
+    if (map.getZoom() < 14) {
       text.attr("visibility", "hidden");
-    });
+    } else {
+      text.attr("visibility", "visible");
+    }
 
     researcher.x = x;
     researcher.y = y;
