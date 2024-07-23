@@ -53,7 +53,7 @@ let selectedInstitutions = [];
 const moduleColors = d3
   .scaleOrdinal()
   .domain(["MRI", "EEG", "SP", "DS", "PET"])
-  .range(["#304F5A", "#FBB522", "#ADD8E6", "#00008B", "#FFFFFF"]);
+  .range(["#304F5A", "#FBB522", "#4592ac", "#00008B", "#000000"]);
 
 // Fonction pour initialiser les données
 const initializeData = async () => {
@@ -99,38 +99,36 @@ const displaySelectedResearchers = (selectedResearchers) => {
   const overlay = d3.select(map.getPanes().overlayPane).select("svg");
   overlay.selectAll("*").remove();
 
+  const institutionMap = new Map(institutions.map((inst) => [inst.name, inst]));
+
   // Positionnement des chercheurs autour de leur institution
-  selectedInstitutions.forEach((institutionName) => {
-    const institution = institutions.find(
-      (inst) => inst.name === institutionName
-    );
-    const institutionResearchers = selectedResearchers.filter(
-      (researcher) => researcher.institution === institution.name
-    );
+  selectedResearchers.forEach((researcher) => {
+    const institution = institutionMap.get(researcher.institution);
+    if (!institution || !institution.latitude || !institution.longitude) return;
 
-    institutionResearchers.forEach((researcher, index) => {
-      const center = map.latLngToLayerPoint([
-        institution.latitude,
-        institution.longitude,
-      ]);
-      const radius = 100;
-      const angleStep = (2 * Math.PI) / institutionResearchers.length;
+    const center = map.latLngToLayerPoint([
+      institution.latitude,
+      institution.longitude,
+    ]);
+    const radius = 100;
+    const angleStep = (2 * Math.PI) / selectedResearchers.length;
 
-      const x = center.x + radius * Math.cos(index * angleStep);
-      const y = center.y + radius * Math.sin(index * angleStep);
+    const index = selectedResearchers.indexOf(researcher);
+    const x = center.x + radius * Math.cos(index * angleStep);
+    const y = center.y + radius * Math.sin(index * angleStep);
 
-      overlay
-        .append("circle")
-        .attr("cx", x)
-        .attr("cy", y)
-        .attr("r", 7)
-        .attr("fill", moduleColors(researcher.module))
-        .attr("opacity", 0.7)
-        .attr("stroke", "grey");
+    // Ajouter les éléments (cercles) pour chaque chercheur
+    overlay
+      .append("circle")
+      .attr("cx", x)
+      .attr("cy", y)
+      .attr("r", 7)
+      .attr("fill", moduleColors(researcher.module))
+      .attr("opacity", 0.7)
+      .attr("stroke", "grey");
 
-      researcher.x = x;
-      researcher.y = y;
-    });
+    researcher.x = x;
+    researcher.y = y;
   });
 
   // Ajout des liens entre chercheurs partageant le même module
