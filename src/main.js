@@ -152,6 +152,7 @@ const displaySelectedResearchers = (selectedResearchers) => {
       "transform",
       `rotate(${(index * 360) / selectedResearchers.length}, ${x}, ${y})`
     );
+
     //faire disparaitre le texte au zoomout
     if (map.getZoom() < 12) {
       text.attr("visibility", "hidden");
