@@ -15,6 +15,18 @@ L.tileLayer(
 
 L.svg().addTo(map);
 
+d3.select(map.getPanes().overlayPane)
+  .select("svg")
+  .attr("pointer-events", "all");
+
+// Fonction pour effacer les chercheurs si clic sur la carte
+const clearResearchers = () => {
+  selectedInstitutions = [];
+  updateSelectedResearchers();
+};
+
+map.on("click", clearResearchers);
+
 const svgLayer = d3.select(map.getPanes().overlayPane).select("svg");
 
 // Définition de l'icône personnalisée
@@ -43,6 +55,15 @@ const calculateIconSize = (numResearchers) => {
   } else {
     return Math.min(maxSize, minSize + numResearchers * 0.1);
   }
+};
+
+// Fonction pour ajuster l'angle de rotation du texte
+const adjustTextAngle = (angle) => {
+  let degree = angle * (180 / Math.PI);
+  if (degree > 90 && degree < 270) {
+    degree += 180;
+  }
+  return degree;
 };
 
 // Variables globales pour les données
@@ -115,8 +136,9 @@ const displaySelectedResearchers = (selectedResearchers) => {
     const angleStep = (2 * Math.PI) / selectedResearchers.length;
 
     const index = selectedResearchers.indexOf(researcher);
-    const x = center.x + radius * Math.cos(index * angleStep);
-    const y = center.y + radius * Math.sin(index * angleStep);
+    const angle = index * angleStep;
+    const x = center.x + radius * Math.cos(angle);
+    const y = center.y + radius * Math.sin(angle);
 
     // Ajouter les éléments (cercles) pour chaque chercheur
     const circle = svgLayer
@@ -126,7 +148,13 @@ const displaySelectedResearchers = (selectedResearchers) => {
       .attr("r", 7)
       .attr("fill", moduleColors(researcher.module))
       .attr("opacity", 0.7)
-      .attr("stroke", "grey");
+      .attr("stroke", "grey")
+      .on("mouseover", () => {
+        text.attr("visibility", "visible");
+      })
+      .on("mouseout", () => {
+        text.attr("visibility", "hidden");
+      });
 
     const text = svgLayer
       .append("text")
@@ -138,27 +166,48 @@ const displaySelectedResearchers = (selectedResearchers) => {
       .attr("font-size", "12px")
       .attr("fill", "black")
       .attr("font-weight", "bold")
-      .attr("font-family", "Arial");
-    //ajouter un évènement pour afficher le texte au survol - marche pas
-    // circle.on("mouseover", () => {
+      .attr("font-family", "Arial")
+      .attr("visibility", "hidden")
+      .on("mouseover", () => {
+        text.attr("visibility", "visible");
+      })
+      .on("mouseout", () => {
+        text.attr("visibility", "hidden");
+      })
+      .on("click", () => {
+        window.open(
+          `https://www.google.com/search?q=${researcher.name}+${researcher.institution}`
+        );
+      });
+
+    // .on("mouseover", () => {
     //   text.attr("visibility", "visible");
-    // });
-    // circle.on("mouseout", () => {
+    // })
+    // .on("mouseout", () => {
     //   text.attr("visibility", "hidden");
     // });
 
-    //ajouter une rotation au texte pour qu'il soit lisible
-    text.attr(
-      "transform",
-      `rotate(${(index * 360) / selectedResearchers.length}, ${x}, ${y})`
-    );
-
-    //faire disparaitre le texte au zoomout
-    if (map.getZoom() < 12) {
-      text.attr("visibility", "hidden");
+    // Ajout d'une rotation conditionnelle au texte pour qu'il soit à l'endroit
+    let angleDegrees = angle * (180 / Math.PI);
+    if (angleDegrees > 90 && angleDegrees < 270) {
+      angleDegrees += 180;
+      text
+        .attr("transform", `rotate(${angleDegrees}, ${x}, ${y})`)
+        .attr("text-anchor", "end")
+        .attr("x", x - 10);
     } else {
-      text.attr("visibility", "visible");
+      text
+        .attr("transform", `rotate(${angleDegrees}, ${x}, ${y})`)
+        .attr("text-anchor", "start")
+        .attr("x", x + 10);
     }
+
+    // Faire disparaître le texte au zoom out
+    // if (map.getZoom() < 12) {
+    //   text.attr("visibility", "hidden");
+    // } else {
+    //   text.attr("visibility", "visible");
+    // }
 
     researcher.x = x;
     researcher.y = y;
@@ -212,14 +261,6 @@ const updatePositions = () => {
 
 map.on("zoomend", updatePositions);
 map.on("moveend", updatePositions);
-
-// Fonction pour effacer les chercheurs si clic sur la carte
-const clearResearchers = () => {
-  selectedInstitutions = [];
-  updateSelectedResearchers();
-};
-
-map.on("click", clearResearchers);
 
 // Fonction pour ajouter des marqueurs pour chaque institution sur la carte
 const addInstitutionMarkers = () => {

@@ -126,6 +126,39 @@ const getAllMembersByDepartment = async () => {
   return allMembersByDepartment;
 };
 
+// Fonction pour récupérer les mots-clés via le sitemap
+const getKeywords = async () => {
+  const sitemap_url = `${proxyUrl}/key_words-sitemap.xml`;
+
+  try {
+    const response = await axios.get(sitemap_url);
+    const sitemapData = response.data;
+    const $sitemap = cheerio.load(sitemapData, { xmlMode: true });
+
+    const keywords = [];
+    const regex = /\/key-words\/([^\/]+)\/?$/;
+
+    $sitemap("url > loc").each((index, element) => {
+      const url = $sitemap(element).text();
+      const match = url.match(regex);
+
+      if (match) {
+        const keyword = match[1];
+        keywords.push(keyword);
+      }
+    });
+
+    console.log(keywords); // Affiche les mots-clés extraits
+    return keywords;
+  } catch (error) {
+    console.error("Error fetching sitemap:", error);
+    return [];
+  }
+};
+
+// Appel de la fonction pour récupérer les mots-clés
+getKeywords();
+
 export {
   getInstitutionUrls,
   getMemberNamesByDepartment,

@@ -1,6 +1,5 @@
 header {
     background: #ffffff;
-    /* White background for the header */
     padding: 20px 0;
     margin-bottom: 20px;
     display: flex;
@@ -19,7 +18,6 @@ header {
 
 .logo {
     width: 100px;
-    /* Adjust size of the logo as needed */
     height: auto;
     margin-right: 20px;
 }
@@ -127,7 +125,11 @@ a {
     z-index: 2;
     top: 0;
     left: 0;
-    pointer-events: none;
+    pointer-events: all;
+}
+
+#leaflet-zoom-animated {
+    pointer-events: all;
 }
 
 #network svg {
@@ -135,7 +137,7 @@ a {
     height: 100%;
 }
 #network path {
-    pointer-events: auto;
+    pointer-events: all;
 }
 
 .researcher-label {
