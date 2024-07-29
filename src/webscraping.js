@@ -156,7 +156,6 @@ const getKeywords = async () => {
   }
 };
 
-// Appel de la fonction pour récupérer les mots-clés
 getKeywords();
 
 export {

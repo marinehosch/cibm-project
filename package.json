@@ -25,6 +25,7 @@
     "xml2js": "^0.6.2"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "dotenv-webpack": "^8.1.0",
     "nodemon": "^3.1.4",
     "vite": "^5.3.1"

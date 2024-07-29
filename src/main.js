@@ -29,15 +29,6 @@ map.on("click", clearResearchers);
 
 const svgLayer = d3.select(map.getPanes().overlayPane).select("svg");
 
-// Définition de l'icône personnalisée
-const blueIcon = (size) =>
-  L.icon({
-    iconUrl: "/src/icons/blue-circle.svg",
-    iconSize: size,
-    iconAnchor: [size[0] / 2, size[1]],
-    popupAnchor: [0, -size[1]],
-  });
-
 // Fonction pour calculer la taille de l'icône en fonction du nombre de chercheurs
 const calculateIconSize = (numResearchers) => {
   const minSize = 15;
@@ -77,6 +68,41 @@ const moduleColors = d3
   .scaleOrdinal()
   .domain(["MRI", "EEG", "SP", "DS", "PET"])
   .range(["#304F5A", "#FBB522", "#4592ac", "#00008B", "#000000"]);
+
+// Fonction pour créer un symbole hexagonal
+// const hexagon = d3.symbol().type((size) => {
+//   const sqrt3 = Math.sqrt(3);
+//   const points = [
+//     [0, 1],
+//     [sqrt3 / 2, 0.5],
+//     [sqrt3 / 2, -0.5],
+//     [0, -1],
+//     [-sqrt3 / 2, -0.5],
+//     [-sqrt3 / 2, 0.5],
+//     [0, 1],
+//   ];
+//   const path = d3.path();
+//   points.forEach((point, i) => {
+//     const x = point[0] * size;
+//     const y = point[1] * size;
+//     if (i === 0) {
+//       path.moveTo(x, y);
+//     } else {
+//       path.lineTo(x, y);
+//     }
+//   });
+//   return path.toString();
+// });
+
+//forme des symboles par module
+const moduleShapes = {
+  MRI: d3.symbolCircle,
+  EEG: d3.symbolSquare,
+  SP: d3.symbolTriangle,
+  DS: d3.symbolDiamond,
+  //dessiner un hexagone pour le module PET
+  PET: d3.symbolWye,
+};
 
 // Fonction pour initialiser les données
 const initializeData = async () => {
@@ -140,21 +166,40 @@ const displaySelectedResearchers = (selectedResearchers) => {
     const x = center.x + radius * Math.cos(angle);
     const y = center.y + radius * Math.sin(angle);
 
-    // Ajouter les éléments (cercles) pour chaque chercheur
-    const circle = svgLayer
-      .append("circle")
-      .attr("cx", x)
-      .attr("cy", y)
-      .attr("r", 7)
-      .attr("fill", moduleColors(researcher.module))
+    //ajouter les éléments (shapes en fonction du module) pour chaque chercheur
+    const shape = svgLayer
+      .append("path")
+      .attr("d", d3.symbol().type(moduleShapes[researcher.module]))
+      // .attr("d", d3.symbol().type(d3.symbolCircle))
+      .attr("transform", `translate(${x}, ${y})`)
+      .attr("fill", "blue")
       .attr("opacity", 0.7)
       .attr("stroke", "grey")
+      .attr("stroke-width", 1)
+      .attr("stroke-opacity", 0.5)
+      .attr("r", 7)
       .on("mouseover", () => {
         text.attr("visibility", "visible");
       })
       .on("mouseout", () => {
         text.attr("visibility", "hidden");
       });
+
+    // Ajouter les éléments (cercles) pour chaque chercheur
+    // const circle = svgLayer
+    //   .append("circle")
+    //   .attr("cx", x)
+    //   .attr("cy", y)
+    //   .attr("r", 7)
+    //   .attr("fill", moduleColors(researcher.module))
+    //   .attr("opacity", 0.7)
+    //   .attr("stroke", "grey")
+    //   .on("mouseover", () => {
+    //     text.attr("visibility", "visible");
+    //   })
+    //   .on("mouseout", () => {
+    //     text.attr("visibility", "hidden");
+    //   });
 
     const text = svgLayer
       .append("text")
@@ -180,13 +225,6 @@ const displaySelectedResearchers = (selectedResearchers) => {
         );
       });
 
-    // .on("mouseover", () => {
-    //   text.attr("visibility", "visible");
-    // })
-    // .on("mouseout", () => {
-    //   text.attr("visibility", "hidden");
-    // });
-
     // Ajout d'une rotation conditionnelle au texte pour qu'il soit à l'endroit
     let angleDegrees = angle * (180 / Math.PI);
     if (angleDegrees > 90 && angleDegrees < 270) {
@@ -201,13 +239,6 @@ const displaySelectedResearchers = (selectedResearchers) => {
         .attr("text-anchor", "start")
         .attr("x", x + 10);
     }
-
-    // Faire disparaître le texte au zoom out
-    // if (map.getZoom() < 12) {
-    //   text.attr("visibility", "hidden");
-    // } else {
-    //   text.attr("visibility", "visible");
-    // }
 
     researcher.x = x;
     researcher.y = y;
@@ -262,6 +293,15 @@ const updatePositions = () => {
 map.on("zoomend", updatePositions);
 map.on("moveend", updatePositions);
 
+// Fonction pour générer des icônes personnalisées pour chaque institution
+const customIcon = (institutionName, size) =>
+  L.icon({
+    iconUrl: `/src/icons/${institutionName}.svg`,
+    iconSize: size,
+    iconAnchor: [size[0] / 2, size[1]],
+    popupAnchor: [0, -size[1]],
+  });
+
 // Fonction pour ajouter des marqueurs pour chaque institution sur la carte
 const addInstitutionMarkers = () => {
   institutions.forEach((institution) => {
@@ -273,7 +313,7 @@ const addInstitutionMarkers = () => {
     const iconSize = calculateIconSize(numResearchers);
 
     const marker = L.marker([institution.latitude, institution.longitude], {
-      icon: blueIcon([iconSize, iconSize]),
+      icon: customIcon(institution.name, [iconSize, iconSize]),
     })
       .addTo(map)
       .bindPopup(institution.name)
