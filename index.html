@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualisation de données</title>
+    <title>Data Visualization</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -16,43 +16,92 @@
         <div class="header-content">
             <img src="/src/icons/Logo-CIBM_web.png" alt="CIBM Logo" class="logo">
             <div class="title-container">
-                <h1>CIBM Community Visualisation</h1>
+                <h1>CIBM Community Visualization</h1>
                 <p class="subtitle">Explore the network of researchers, scientists, and experts collaborating within the
                     CIBM community.</p>
             </div>
         </div>
     </header>
+                
+    <div class="intro">CIBM constitutes a network of well recognized experts in the field of biomedical imaging and promotes interaction within
+    and beyond the founding partner institutions.
+    The members of the CIBM Community are researchers, scientists and engineers, technicians and clinicians from academia,
+    industry and hospitals in Switzerland and throughout the globe.</div>
+
     <div class="container">
         <div id="map">
-            <div class="legend">
-                <h3>Legend</h3>
-                <div><span style="background-color: #304F5A;"></span>MRI</div>
-                <div><span style="background-color: #FBB522;"></span>EEG</div>
-                <div><span style="background-color: #4592ac;"></span>SP</div>
-                <div><span style="background-color: #00008B;"></span>DS</div>
-                <div><span style="background-color: #000000;"></span>PET</div>
+            <div class="legend-container">
+                <div class="legend">
+                    <h3>Modules</h3>
+                    <div><svg width="15" height="15">
+                            <circle cx="7.5" cy="7.5" r="7" fill="#0071B2"></circle>
+                        </svg> MRI</div>
+                    <div><svg width="15" height="15">
+                            <rect x="2" y="2" width="11" height="11" fill="#0071B2"></rect>
+                        </svg> EEG</div>
+                    <div><svg width="15" height="15">
+                            <polygon points="7.5,1 14,14 1,14" fill="#0071B2"></polygon>
+                        </svg> SP</div>
+                    <div><svg width="15" height="15">
+                            <polygon points="7.5,1 14,7.5 7.5,14 1,7.5" fill="#0071B2"></polygon>
+                        </svg> DS</div>
+                    <div><svg width="15" height="15" viewBox="0 0 30 30">
+                            <path d="M15 2 L18 12 L28 12 L20 18 L23 28 L15 22 L7 28 L10 18 L2 12 L12 12 Z"
+                                fill="#0071B2"></path>
+                        </svg> PET</div>
+
+                    <h3>Founding Institutions</h3>
+                    <div><svg width="15" height="15">
+                            <circle cx="7.5" cy="7.5" r="7" fill="#009933"></circle>
+                        </svg> CHUV</div>
+                    <div><svg width="15" height="15">
+                            <circle cx="7.5" cy="7.5" r="7" fill="#FF0000"></circle>
+                        </svg> EPFL</div>
+                    <div><svg width="15" height="15">
+                            <circle cx="7.5" cy="7.5" r="7" fill="#55B7B1"></circle>
+                        </svg> HUG</div>
+                    <div><svg width="15" height="15">
+                            <circle cx="7.5" cy="7.5" r="7" fill="#CF0063"></circle>
+                        </svg> UNIGE</div>
+                    <div><svg width="15" height="15">
+                            <circle cx="7.5" cy="7.5" r="7" fill="#1C95CD"></circle>
+                        </svg> UNIL</div>
+                </div>
+                </div>
+                            <div id="researcher-popup" class="hidden">
+
             </div>
         </div>
+        <div id="timeline"></div>
         <div id="filter-container">
             <h3>Filters</h3>
-            <div class="module">
-                <strong>Module</strong>
+            <div class="filter-group">
+                <strong>Show researchers by module</strong>
                 <label><input type="checkbox" value="DS" class="module-filter" /> DS</label>
                 <label><input type="checkbox" value="EEG" class="module-filter" /> EEG</label>
                 <label><input type="checkbox" value="MRI" class="module-filter" /> MRI</label>
                 <label><input type="checkbox" value="PET" class="module-filter" /> PET</label>
                 <label><input type="checkbox" value="SP" class="module-filter" /> SP</label>
-
-                <button id="reset-filters">Reset Filters</button>
             </div>
-            <!-- <div class="section">
-                <strong>Section</strong>
+            <div class="filter-group">
+                <strong>Show researchers by institution</strong>
+                <label><input type="checkbox" value="CHUV" class="institution-filter" /> CHUV</label>
                 <label><input type="checkbox" value="EPFL" class="institution-filter" /> EPFL</label>
+                <label><input type="checkbox" value="HUG" class="institution-filter" /> HUG</label>
+                <label><input type="checkbox" value="UNIL" class="institution-filter" /> UNIL</label>
+                <label><input type="checkbox" value="UNIGE" class="institution-filter" /> UNIGE</label>
+                <div class="filter-group">
+                    <label><input type="checkbox" value="Show partner institutions" class="partenaires" /> Show partner
+                        institutions</label>
+                </div>
             </div>
-            <div class="section">
-                <strong>Section</strong>
-                <label><input type="checkbox" value="" class="" /> bhbhb</label>
-            </div> -->
+            <div class="filter-group">
+                <strong>Show the CIBM community</strong>
+                <label><input type="checkbox" value="affiliate" class="people-filter" /> Affiliate</label>
+                <label><input type="checkbox" value="associate" class="people-filter" /> Associate</label>
+                <label><input type="checkbox" value="alumni" class="people-filter" /> Alumni</label>
+            </div>
+            <button id="reset-filters">Reset Filters</button>
         </div>
     </div>
     <div class="description">

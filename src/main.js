@@ -1,6 +1,7 @@
 import L from "leaflet";
 import { getInstitutions, getResearchersByInstitution } from "./getDB.js";
 import * as d3 from "d3";
+import { showResearcherPopup, highlightConnections } from "./popup.js";
 
 // Initialisation de la carte Leaflet
 const map = L.map("map").setView([46.51999710099841, 6.569531292590334], 12);
@@ -109,6 +110,8 @@ const initializeData = async () => {
   try {
     researchers = await getResearchersByInstitution();
     institutions = await getInstitutions();
+    console.log("Researchers:", researchers); // Debug
+    console.log("Institutions:", institutions); // Debug
     return { researchers, institutions };
   } catch (error) {
     console.error("Error initializing data:", error);
@@ -169,37 +172,69 @@ const displaySelectedResearchers = (selectedResearchers) => {
     //ajouter les éléments (shapes en fonction du module) pour chaque chercheur
     const shape = svgLayer
       .append("path")
-      .attr("d", d3.symbol().type(moduleShapes[researcher.module]))
+      .attr("d", d3.symbol().type(moduleShapes[researcher.module]).size(100))
       // .attr("d", d3.symbol().type(d3.symbolCircle))
       .attr("transform", `translate(${x}, ${y})`)
-      .attr("fill", "blue")
+      .attr("fill", "#0071B2")
       .attr("opacity", 0.7)
-      .attr("stroke", "grey")
+      .attr("stroke", "white")
       .attr("stroke-width", 1)
-      .attr("stroke-opacity", 0.5)
+      .attr("stroke-opacity", 0.7)
       .attr("r", 7)
+      .attr("pointer-events", "all")
       .on("mouseover", () => {
         text.attr("visibility", "visible");
       })
       .on("mouseout", () => {
         text.attr("visibility", "hidden");
+      })
+      .on("click", () => {
+        console.log("Clicked on researcher:", researcher); // Debug
+        showPopup(researcher);
       });
 
-    // Ajouter les éléments (cercles) pour chaque chercheur
-    // const circle = svgLayer
-    //   .append("circle")
-    //   .attr("cx", x)
-    //   .attr("cy", y)
-    //   .attr("r", 7)
-    //   .attr("fill", moduleColors(researcher.module))
-    //   .attr("opacity", 0.7)
-    //   .attr("stroke", "grey")
-    //   .on("mouseover", () => {
-    //     text.attr("visibility", "visible");
-    //   })
-    //   .on("mouseout", () => {
-    //     text.attr("visibility", "hidden");
-    //   });
+    // Ajouter les éléments (cercles) pour chaque chercheur en invisible pour rendre la zone cliquable
+    const circle = svgLayer
+      .append("circle")
+      .attr("cx", x)
+      .attr("cy", y)
+      .attr("r", 7)
+      .attr("fill", moduleColors(researcher.module))
+      .attr("opacity", 0)
+      .attr("stroke", "grey")
+      .on("mouseover", () => {
+        text.attr("visibility", "visible");
+      })
+      .on("mouseout", () => {
+        text.attr("visibility", "hidden");
+      })
+      .on("click", () => {
+        console.log("Clicked on researcher circle:", researcher); // Debug
+        showPopup(researcher);
+      });
+    const institutionColors = {
+      EPFL: "#FF0000", // Rouge
+      CIBM: "#304F5A", // Bleu-gris
+      HUG: "#55B7B1", // Turquoise
+      CHUV: "#009933", // Vert
+      UNIL: "#1C95CD", // Bleu clair
+      UNIGE: "#CF0063", // Rose
+    };
+
+    //ajout du lien entre les chercheurs et leur institution
+    const linkColor = institutionColors[researcher.institution] || "GREY"; // Couleur par défaut si institution non trouvée
+    const link = svgLayer
+      .append("line")
+      .attr("x1", x)
+      .attr("y1", y)
+      .attr("x2", center.x)
+      .attr("y2", center.y)
+      .attr(
+        "stroke", //couleur en fonction de l'institution
+        linkColor
+      )
+      .attr("stroke-opacity", 0.5)
+      .attr("stroke-width", 1);
 
     const text = svgLayer
       .append("text")
@@ -220,9 +255,7 @@ const displaySelectedResearchers = (selectedResearchers) => {
         text.attr("visibility", "hidden");
       })
       .on("click", () => {
-        window.open(
-          `https://www.google.com/search?q=${researcher.name}+${researcher.institution}`
-        );
+        showPopup(researcher);
       });
 
     // Ajout d'une rotation conditionnelle au texte pour qu'il soit à l'endroit
@@ -274,12 +307,7 @@ const displaySelectedResearchers = (selectedResearchers) => {
       .attr("y1", y1)
       .attr("x2", x2)
       .attr("y2", y2)
-      .attr(
-        "stroke",
-        moduleColors(
-          selectedResearchers.find((r) => r.x === x1 && r.y === y1).module
-        )
-      )
+      .attr("stroke", d3.interpolateTurbo(Math.min(1, count / 10)))
       .attr("stroke-opacity", Math.min(1, count / 10))
       .attr("stroke-width", Math.min(5, count));
   });
@@ -301,6 +329,39 @@ const customIcon = (institutionName, size) =>
     iconAnchor: [size[0] / 2, size[1]],
     popupAnchor: [0, -size[1]],
   });
+// Fonction pour afficher une div avec les informations sur le chercheur
+const showPopup = (researcher) => {
+  console.log("showPopup called with:", researcher); // Debug
+  const popupDiv = d3.select("#researcher-popup");
+
+  const popupContent = `
+    <div>
+      <strong>${researcher.name}</strong><br>
+      Module: ${researcher.module}<br>
+      Institution: ${researcher.institution}
+    </div>
+  `;
+
+  popupDiv
+    .html(popupContent)
+    .classed("hidden", false)
+    .transition()
+    .duration(200)
+    .style("opacity", 1);
+};
+
+// Fonction pour cacher la div du pop-up
+const hidePopup = () => {
+  d3.select("#researcher-popup")
+    .transition()
+    .duration(200)
+    .on("end", function () {
+      d3.select(this).classed("hidden", true);
+    });
+};
+
+// Ajoutez un événement pour cacher le pop-up lorsque vous cliquez sur la carte
+map.on("click", hidePopup);
 
 // Fonction pour ajouter des marqueurs pour chaque institution sur la carte
 const addInstitutionMarkers = () => {
