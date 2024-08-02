@@ -110,8 +110,6 @@ const initializeData = async () => {
   try {
     researchers = await getResearchersByInstitution();
     institutions = await getInstitutions();
-    console.log("Researchers:", researchers); // Debug
-    console.log("Institutions:", institutions); // Debug
     return { researchers, institutions };
   } catch (error) {
     console.error("Error initializing data:", error);
@@ -189,7 +187,6 @@ const displaySelectedResearchers = (selectedResearchers) => {
         text.attr("visibility", "hidden");
       })
       .on("click", () => {
-        console.log("Clicked on researcher:", researcher); // Debug
         showPopup(researcher);
       });
 
@@ -209,7 +206,6 @@ const displaySelectedResearchers = (selectedResearchers) => {
         text.attr("visibility", "hidden");
       })
       .on("click", () => {
-        console.log("Clicked on researcher circle:", researcher); // Debug
         showPopup(researcher);
       });
     const institutionColors = {
@@ -329,16 +325,28 @@ const customIcon = (institutionName, size) =>
     iconAnchor: [size[0] / 2, size[1]],
     popupAnchor: [0, -size[1]],
   });
+
+const hidePopup = () => {
+  d3.select("#researcher-popup")
+    .transition()
+    .duration(200)
+    .style("opacity", 0)
+    .on("end", function () {
+      d3.select(this).classed("hidden", true); // Ajoutez la classe hidden à l'élément après la transition
+    });
+};
+
 // Fonction pour afficher une div avec les informations sur le chercheur
 const showPopup = (researcher) => {
-  console.log("showPopup called with:", researcher); // Debug
   const popupDiv = d3.select("#researcher-popup");
-
   const popupContent = `
     <div>
+      <a id="close" href="#">&times;</a>
       <strong>${researcher.name}</strong><br>
-      Module: ${researcher.module}<br>
-      Institution: ${researcher.institution}
+      Institution: ${researcher.institution} <br>
+      Expertise: ${researcher.keywords.join(", ")}<br>
+      Technologies: ${researcher.module}<br>
+
     </div>
   `;
 
@@ -348,20 +356,13 @@ const showPopup = (researcher) => {
     .transition()
     .duration(200)
     .style("opacity", 1);
-};
 
-// Fonction pour cacher la div du pop-up
-const hidePopup = () => {
-  d3.select("#researcher-popup")
-    .transition()
-    .duration(200)
-    .on("end", function () {
-      d3.select(this).classed("hidden", true);
-    });
+  // Ajoutez un événement pour cacher le pop-up lorsque au clic sur la croix
+  document.getElementById("close").addEventListener("click", (event) => {
+    event.preventDefault();
+    hidePopup();
+  });
 };
-
-// Ajoutez un événement pour cacher le pop-up lorsque vous cliquez sur la carte
-map.on("click", hidePopup);
 
 // Fonction pour ajouter des marqueurs pour chaque institution sur la carte
 const addInstitutionMarkers = () => {
