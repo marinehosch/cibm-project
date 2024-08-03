@@ -1,10 +1,9 @@
-import L from "leaflet";
+import L, { svg, svgOverlay } from "leaflet";
 import { getInstitutions, getResearchersByInstitution } from "./getDB.js";
 import * as d3 from "d3";
-import { showResearcherPopup, highlightConnections } from "./popup.js";
 
 // Initialisation de la carte Leaflet
-const map = L.map("map").setView([46.51999710099841, 6.569531292590334], 12);
+const map = L.map("map").setView([46.45324993119597, 6.476370813913443], 9);
 L.tileLayer(
   "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png",
   {
@@ -20,10 +19,11 @@ d3.select(map.getPanes().overlayPane)
   .select("svg")
   .attr("pointer-events", "all");
 
-// Fonction pour effacer les chercheurs si clic sur la carte
+// Fonction pour effacer les chercheurs et les liens si clic sur la carte
 const clearResearchers = () => {
   selectedInstitutions = [];
-  updateSelectedResearchers();
+  selectedResearchers = [];
+  highlightedAttributes = [];
 };
 
 map.on("click", clearResearchers);
@@ -49,20 +49,13 @@ const calculateIconSize = (numResearchers) => {
   }
 };
 
-// Fonction pour ajuster l'angle de rotation du texte
-const adjustTextAngle = (angle) => {
-  let degree = angle * (180 / Math.PI);
-  if (degree > 90 && degree < 270) {
-    degree += 180;
-  }
-  return degree;
-};
-
 // Variables globales pour les données
 let researchers = [];
 let institutions = [];
 let selectedResearchers = [];
 let selectedInstitutions = [];
+let highlightedAttributes = [];
+let selectedResearcherForPopup = null;
 
 // Palette de couleurs personnalisée pour les modules
 const moduleColors = d3
@@ -70,38 +63,12 @@ const moduleColors = d3
   .domain(["MRI", "EEG", "SP", "DS", "PET"])
   .range(["#304F5A", "#FBB522", "#4592ac", "#00008B", "#000000"]);
 
-// Fonction pour créer un symbole hexagonal
-// const hexagon = d3.symbol().type((size) => {
-//   const sqrt3 = Math.sqrt(3);
-//   const points = [
-//     [0, 1],
-//     [sqrt3 / 2, 0.5],
-//     [sqrt3 / 2, -0.5],
-//     [0, -1],
-//     [-sqrt3 / 2, -0.5],
-//     [-sqrt3 / 2, 0.5],
-//     [0, 1],
-//   ];
-//   const path = d3.path();
-//   points.forEach((point, i) => {
-//     const x = point[0] * size;
-//     const y = point[1] * size;
-//     if (i === 0) {
-//       path.moveTo(x, y);
-//     } else {
-//       path.lineTo(x, y);
-//     }
-//   });
-//   return path.toString();
-// });
-
-//forme des symboles par module
+// Forme des symboles par module
 const moduleShapes = {
   MRI: d3.symbolCircle,
   EEG: d3.symbolSquare,
   SP: d3.symbolTriangle,
   DS: d3.symbolDiamond,
-  //dessiner un hexagone pour le module PET
   PET: d3.symbolWye,
 };
 
@@ -110,6 +77,8 @@ const initializeData = async () => {
   try {
     researchers = await getResearchersByInstitution();
     institutions = await getInstitutions();
+    console.log("Researchers:", researchers);
+    console.log("Institutions:", institutions);
     return { researchers, institutions };
   } catch (error) {
     console.error("Error initializing data:", error);
@@ -124,7 +93,7 @@ const updateSelectedResearchers = () => {
   ).map((cb) => cb.value);
 
   if (selectedInstitutions.length === 0 && selectedModules.length === 0) {
-    selectedResearchers = [];
+    selectedResearchers = researchers;
   } else if (selectedInstitutions.length === 0) {
     selectedResearchers = researchers.filter((researcher) =>
       selectedModules.includes(researcher.module)
@@ -141,17 +110,39 @@ const updateSelectedResearchers = () => {
     );
   }
 
-  displaySelectedResearchers(selectedResearchers);
+  console.log("Selected Researchers:", selectedResearchers);
+  displaySelectedResearchers(selectedResearchers, selectedModules);
+};
+
+const findCommonResearchers = () => {
+  if (!researchers || researchers.length === 0) {
+    return [];
+  }
+
+  return researchers.filter((researcher) => {
+    return highlightedAttributes.every(({ attribute, value }) => {
+      const attrValue = researcher[attribute];
+      if (Array.isArray(attrValue)) {
+        return attrValue.some(
+          (val) => val.toLowerCase() === value.toLowerCase()
+        );
+      } else if (typeof attrValue === "string") {
+        return attrValue.toLowerCase() === value.toLowerCase();
+      } else {
+        return false;
+      }
+    });
+  });
 };
 
 // Fonction pour afficher les chercheurs sélectionnés autour des institutions
-const displaySelectedResearchers = (selectedResearchers) => {
+const displaySelectedResearchers = (selectedResearchers, selectedModules) => {
   svgLayer.selectAll("*").remove();
 
   const institutionMap = new Map(institutions.map((inst) => [inst.name, inst]));
 
   // Positionnement des chercheurs autour de leur institution
-  selectedResearchers.forEach((researcher) => {
+  selectedResearchers.forEach((researcher, i) => {
     const institution = institutionMap.get(researcher.institution);
     if (!institution || !institution.latitude || !institution.longitude) return;
 
@@ -162,35 +153,36 @@ const displaySelectedResearchers = (selectedResearchers) => {
     const radius = 100;
     const angleStep = (2 * Math.PI) / selectedResearchers.length;
 
-    const index = selectedResearchers.indexOf(researcher);
-    const angle = index * angleStep;
+    const angle = i * angleStep;
     const x = center.x + radius * Math.cos(angle);
     const y = center.y + radius * Math.sin(angle);
 
-    //ajouter les éléments (shapes en fonction du module) pour chaque chercheur
+    // Ajouter les éléments (shapes en fonction du module) pour chaque chercheur
     const shape = svgLayer
       .append("path")
       .attr("d", d3.symbol().type(moduleShapes[researcher.module]).size(100))
-      // .attr("d", d3.symbol().type(d3.symbolCircle))
       .attr("transform", `translate(${x}, ${y})`)
       .attr("fill", "#0071B2")
       .attr("opacity", 0.7)
       .attr("stroke", "white")
       .attr("stroke-width", 1)
       .attr("stroke-opacity", 0.7)
-      .attr("r", 7)
       .attr("pointer-events", "all")
-      .on("mouseover", () => {
-        text.attr("visibility", "visible");
+      .on("mouseover", function () {
+        d3.select(this).attr("opacity", 1);
       })
-      .on("mouseout", () => {
-        text.attr("visibility", "hidden");
+      .on("mouseout", function () {
+        d3.select(this).attr("opacity", 0.7);
       })
       .on("click", () => {
         showPopup(researcher);
+        //fixer le nom du chercheur sélectionné
+        selectedResearcherForPopup = researcher;
+        //afficher le texte du nom du chercheur sélectionné comme au hover
+        d3.select(text).attr("visibility", "visible");
       });
 
-    // Ajouter les éléments (cercles) pour chaque chercheur en invisible pour rendre la zone cliquable
+    // Ajouter un cercle pour chaque chercheur en invisible pour rendre la zone cliquable
     const circle = svgLayer
       .append("circle")
       .attr("cx", x)
@@ -208,6 +200,7 @@ const displaySelectedResearchers = (selectedResearchers) => {
       .on("click", () => {
         showPopup(researcher);
       });
+
     const institutionColors = {
       EPFL: "#FF0000", // Rouge
       CIBM: "#304F5A", // Bleu-gris
@@ -217,18 +210,15 @@ const displaySelectedResearchers = (selectedResearchers) => {
       UNIGE: "#CF0063", // Rose
     };
 
-    //ajout du lien entre les chercheurs et leur institution
+    // Ajouter le lien entre les chercheurs et leur institution
     const linkColor = institutionColors[researcher.institution] || "GREY"; // Couleur par défaut si institution non trouvée
-    const link = svgLayer
+    svgLayer
       .append("line")
       .attr("x1", x)
       .attr("y1", y)
       .attr("x2", center.x)
       .attr("y2", center.y)
-      .attr(
-        "stroke", //couleur en fonction de l'institution
-        linkColor
-      )
+      .attr("stroke", linkColor)
       .attr("stroke-opacity", 0.5)
       .attr("stroke-width", 1);
 
@@ -272,46 +262,14 @@ const displaySelectedResearchers = (selectedResearchers) => {
     researcher.x = x;
     researcher.y = y;
   });
-
-  // Regrouper les liens entre chercheurs partageant le même module
-  const linkMap = new Map();
-
-  selectedResearchers.forEach((source) => {
-    selectedResearchers.forEach((target) => {
-      if (source !== target && source.module === target.module) {
-        const key = [source.x, source.y, target.x, target.y].sort().join(",");
-        if (!linkMap.has(key)) {
-          linkMap.set(key, {
-            count: 0,
-            x1: source.x,
-            y1: source.y,
-            x2: target.x,
-            y2: target.y,
-          });
-        }
-        linkMap.get(key).count += 1;
-      }
-    });
-  });
-
-  // Dessiner les liens regroupés
-  linkMap.forEach((link, key) => {
-    const { count, x1, y1, x2, y2 } = link;
-    svgLayer
-      .append("line")
-      .attr("x1", x1)
-      .attr("y1", y1)
-      .attr("x2", x2)
-      .attr("y2", y2)
-      .attr("stroke", d3.interpolateTurbo(Math.min(1, count / 10)))
-      .attr("stroke-opacity", Math.min(1, count / 10))
-      .attr("stroke-width", Math.min(5, count));
-  });
 };
 
 // Fonction pour mettre à jour la position des chercheurs et des lignes
 const updatePositions = () => {
-  displaySelectedResearchers(selectedResearchers);
+  const selectedModules = Array.from(
+    document.querySelectorAll(".module-filter:checked")
+  ).map((cb) => cb.value);
+  displaySelectedResearchers(selectedResearchers, selectedModules);
 };
 
 map.on("zoomend", updatePositions);
@@ -326,27 +284,50 @@ const customIcon = (institutionName, size) =>
     popupAnchor: [0, -size[1]],
   });
 
+// Fonction pour cacher la div d'information sur le chercheur
 const hidePopup = () => {
   d3.select("#researcher-popup")
     .transition()
     .duration(200)
     .style("opacity", 0)
     .on("end", function () {
-      d3.select(this).classed("hidden", true); // Ajoutez la classe hidden à l'élément après la transition
+      d3.select(this).classed("hidden", true);
     });
 };
 
-// Fonction pour afficher une div avec les informations sur le chercheur
 const showPopup = (researcher) => {
   const popupDiv = d3.select("#researcher-popup");
   const popupContent = `
     <div>
       <a id="close" href="#">&times;</a>
-      <strong>${researcher.name}</strong><br>
-      Institution: ${researcher.institution} <br>
-      Expertise: ${researcher.keywords.join(", ")}<br>
-      Technologies: ${researcher.module}<br>
-
+      <h3>${researcher.name}</h3>
+      <p><strong>Institution:</strong> <span class="highlightable" data-attribute="institution">${
+        researcher.institution
+      }</span></p>
+      <p><strong>Technologie:</strong> <span class="highlightable" data-attribute="module">${
+        researcher.module
+      }</span></p>
+      <p><strong>Expertise:</strong> ${researcher.keywords
+        .map(
+          (keyword) =>
+            `<span class="highlightable" data-attribute="keywords">${keyword}</span>`
+        )
+        .join(", ")}</p>
+      <p><strong>Type de population:</strong> <span class="highlightable" data-attribute="populationType">${
+        researcher.populationType
+      }</span></p>
+      <p><strong>Groupe d'âge:</strong> ${researcher.ageGroup
+        .map(
+          (age) =>
+            `<span class="highlightable" data-attribute="ageGroup">${age}</span>`
+        )
+        .join(", ")}</p>
+      <p><strong>Statut de santé:</strong> ${researcher.healthStatus
+        .map(
+          (status) =>
+            `<span class="highlightable" data-attribute="healthStatus">${status}</span>`
+        )
+        .join(", ")}</p>
     </div>
   `;
 
@@ -357,11 +338,86 @@ const showPopup = (researcher) => {
     .duration(200)
     .style("opacity", 1);
 
-  // Ajoutez un événement pour cacher le pop-up lorsque au clic sur la croix
+  selectedResearcherForPopup = researcher;
+  console.log("Selected Researcher for Popup:", researcher); //ici ok, log le bon
+
+  //événement pour cacher le pop-up au clic sur la croix
   document.getElementById("close").addEventListener("click", (event) => {
     event.preventDefault();
     hidePopup();
   });
+
+  // Ajoutez des événements de clic sur les attributs des chercheurs
+  d3.selectAll(".highlightable").on("click", function () {
+    const element = d3.select(this);
+    const attribute = element.attr("data-attribute");
+    const value = element.text().trim();
+
+    console.log(`Clicked on attribute: ${attribute}, value: ${value}`);
+
+    // Toggle highlight class
+    const isHighlighted = element.classed("highlight");
+    element.classed("highlight", !isHighlighted);
+
+    // Mettre à jour la liste des attributs mis en évidence
+    if (isHighlighted) {
+      highlightedAttributes = highlightedAttributes.filter(
+        (attr) => attr.attribute !== attribute || attr.value !== value
+      );
+    } else {
+      highlightedAttributes.push({ attribute, value });
+    }
+
+    // Afficher les chercheurs ayant les attributs mis en évidence
+    highlightConnections();
+  });
+};
+
+const highlightConnections = () => {
+  svgLayer.selectAll(".attribute-link").remove(); // Supprimez les liens existants
+
+  const commonResearchers = findCommonResearchers();
+
+  if (commonResearchers.length === 0) {
+    console.log("No common researchers found");
+    return;
+  }
+
+  console.log("Common Researchers:", commonResearchers);
+
+  // Ajout des liens entre les chercheurs ayant les mêmes attributs
+  commonResearchers.forEach((target) => {
+    if (selectedResearcherForPopup && selectedResearcherForPopup !== target) {
+      svgLayer
+        .append("line")
+        .attr("class", "attribute-link")
+        .attr("x1", selectedResearcherForPopup.x)
+        .attr("y1", selectedResearcherForPopup.y)
+        .attr("x2", target.x)
+        .attr("y2", target.y)
+        .attr("stroke", "blue") // Couleur des liens pour les attributs
+        .attr("stroke-opacity", 0.5)
+        .attr("stroke-width", 1);
+    }
+  });
+
+  // Mettre à jour selectedResearchers avec les chercheurs ayant les attributs mis en évidence
+  selectedResearchers = commonResearchers;
+  const selectedModules = Array.from(
+    document.querySelectorAll(".module-filter:checked")
+  ).map((cb) => cb.value);
+  displaySelectedResearchers(selectedResearchers, selectedModules);
+
+  // Zoom out to fit all researchers in view
+  if (commonResearchers.length > 0) {
+    const bounds = L.latLngBounds(
+      commonResearchers.map((researcher) => [
+        researcher.latitude,
+        researcher.longitude,
+      ])
+    );
+    map.fitBounds(bounds);
+  }
 };
 
 // Fonction pour ajouter des marqueurs pour chaque institution sur la carte
@@ -406,7 +462,11 @@ const setupFilters = () => {
       checkbox.checked = false;
     });
     selectedInstitutions = [];
-    updateSelectedResearchers();
+    highlightedAttributes = [];
+    selectedResearchers = researchers;
+    displaySelectedResearchers(selectedResearchers, []);
+    svgLayer.selectAll("*").remove();
+    hidePopup();
   });
 };
 
