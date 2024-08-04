@@ -16,7 +16,9 @@ const getResearchersByInstitution = async () => {
             r.keywords AS keywords, 
             r.population_type AS populationType, 
             r.age_group AS ageGroup, 
-            r.health_status AS healthStatus`
+            r.health_status AS healthStatus, 
+            r.arrivalDate AS arrivalDate,
+            r.departureDate AS departureDate`
   );
   session.close();
   return result.records.map((record) => ({
@@ -27,6 +29,8 @@ const getResearchersByInstitution = async () => {
     populationType: record.get("populationType"),
     ageGroup: record.get("ageGroup"),
     healthStatus: record.get("healthStatus"),
+    arrivalDate: record.get("arrivalDate"),
+    departureDate: record.get("departureDate"),
   }));
 };
 
@@ -46,18 +50,17 @@ const getInstitutions = async () => {
 const getPeople = async () => {
   const session = driver.session();
   const result = await session.run(
-    "MATCH (p:People) RETURN labels(p) AS labels, p.mainInstituion AS institution, p.name AS name, p.arrivalDate AS arrivalDate, p.departureDate AS departureDate"
+    "MATCH (p:People) RETURN labels(p) AS labels, p.mainInstitution AS institution, p.name AS name, p.arrivalDate AS arrivalDate, p.departureDate AS departureDate"
   );
   session.close();
+  console.log(result);
   return result.records.map((record) => ({
     name: record.get("name"),
     institution: record.get("institution"),
-    name: record.get("name"),
     arrivalDate: record.get("arrivalDate"),
     departureDate: record.get("departureDate"),
+    labels: record.get("labels"),
   }));
 };
 
-getPeople();
-
-export { getResearchersByInstitution, getInstitutions, driver };
+export { getResearchersByInstitution, getInstitutions, getPeople, driver };

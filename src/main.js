@@ -23,10 +23,16 @@ d3.select(map.getPanes().overlayPane)
 const clearResearchers = () => {
   selectedInstitutions = [];
   selectedResearchers = [];
+  selectedInstitutions;
   highlightedAttributes = [];
 };
 
-map.on("click", clearResearchers);
+const clearAll = () => {
+  svgLayer.selectAll("*").remove();
+  hidePopup();
+};
+
+map.on("click", clearResearchers, clearAll);
 
 const svgLayer = d3.select(map.getPanes().overlayPane).select("svg");
 
@@ -77,8 +83,6 @@ const initializeData = async () => {
   try {
     researchers = await getResearchersByInstitution();
     institutions = await getInstitutions();
-    console.log("Researchers:", researchers);
-    console.log("Institutions:", institutions);
     return { researchers, institutions };
   } catch (error) {
     console.error("Error initializing data:", error);
@@ -270,6 +274,7 @@ const updatePositions = () => {
     document.querySelectorAll(".module-filter:checked")
   ).map((cb) => cb.value);
   displaySelectedResearchers(selectedResearchers, selectedModules);
+  highlightConnections();
 };
 
 map.on("zoomend", updatePositions);
@@ -339,7 +344,6 @@ const showPopup = (researcher) => {
     .style("opacity", 1);
 
   selectedResearcherForPopup = researcher;
-  console.log("Selected Researcher for Popup:", researcher); //ici ok, log le bon
 
   //événement pour cacher le pop-up au clic sur la croix
   document.getElementById("close").addEventListener("click", (event) => {
