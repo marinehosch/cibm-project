@@ -1,10 +1,11 @@
 import neo4j from "neo4j-driver";
 
-const driver = neo4j.driver(
-  "bolt://localhost:7687",
-  neo4j.auth.basic("neo4j", "password")
-);
-// Requête pour récupérer les chercheurs par institution avec leurs propriétés
+const uri = import.meta.env.VITE_NEO4J_URI || "bolt://localhost:7687";
+const user = import.meta.env.VITE_NEO4J_USER || "neo4j";
+const password = import.meta.env.VITE_NEO4J_PASSWORD || "password";
+
+const driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
+
 const getResearchersByInstitution = async () => {
   const session = driver.session();
   const result = await session.run(
@@ -18,7 +19,6 @@ const getResearchersByInstitution = async () => {
             r.health_status AS healthStatus`
   );
   session.close();
-  console.log(result.records);
   return result.records.map((record) => ({
     name: record.get("name"),
     institution: record.get("institution"),
@@ -32,16 +32,17 @@ const getResearchersByInstitution = async () => {
 
 const getInstitutions = async () => {
   const session = driver.session();
-  const institutions = await session.run(
+  const result = await session.run(
     "MATCH (i:Institution) WHERE NOT i.name CONTAINS '-'  AND i.latitude IS NOT NULL AND i.longitude IS NOT NULL AND i.institutionType = 'foundingInstitution' RETURN i.latitude AS latitude, i.longitude AS longitude, i.name AS name"
   );
   session.close();
-  return institutions.records.map((record) => ({
+  return result.records.map((record) => ({
     name: record.get("name"),
     latitude: record.get("latitude"),
     longitude: record.get("longitude"),
   }));
 };
+
 const getPeople = async () => {
   const session = driver.session();
   const result = await session.run(
@@ -50,10 +51,13 @@ const getPeople = async () => {
   session.close();
   return result.records.map((record) => ({
     name: record.get("name"),
-    startDate: record.get("startDate"),
-    endDate: record.get("endDate"),
+    institution: record.get("institution"),
+    name: record.get("name"),
+    arrivalDate: record.get("arrivalDate"),
+    departureDate: record.get("departureDate"),
   }));
 };
+
 getPeople();
 
-export { getResearchersByInstitution, getInstitutions };
+export { getResearchersByInstitution, getInstitutions, driver };
