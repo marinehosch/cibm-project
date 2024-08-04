@@ -75,7 +75,7 @@ h1 {
 
 #map {
     flex: 2;
-    height: 500px;
+    height: 590px;
     border: 1px solid #ddd;
     border-radius: 5px;
     position: relative;
@@ -89,6 +89,7 @@ h1 {
     border: 1px solid #ddd;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    max-height: 550px;
 }
 
 .filter-group {
@@ -166,7 +167,7 @@ h1 {
 
 .legend-container {
     position: absolute;
-    margin-top: 100px;
+    margin-top: 230px;
     z-index: 1000;
     padding: 10px;
     background-color: white;
@@ -199,6 +200,7 @@ h1 {
     height: 15px;
     border-radius: 3px;
 }
+
 .link {
     stroke: grey;
     stroke-opacity: 0.5;
@@ -210,10 +212,11 @@ h1 {
     stroke-opacity: 1;
     stroke-width: 2;
 }
+
 #researcher-popup {
     position: absolute;
-    left: 150px;
-    top: 10%;
+    left: 45px;
+    top: 5px;
     width: 250px;
     padding: 10px;
     background: white;
@@ -222,6 +225,7 @@ h1 {
     z-index: 1000;
     opacity: 0;
     transition: opacity 0.3s ease;
+    cursor: pointer;
 }
 
 .hidden {
@@ -238,6 +242,7 @@ h1 {
     text-decoration: none;
     color: #333;
 }
+
 #close:hover {
     color: #CF243C;
 }
@@ -252,3 +257,73 @@ h1 {
     stroke-width: 2;
     stroke-opacity: 0.7;
 }
+
+.instructions {
+    margin: 2px auto;
+    padding: 2px;
+    max-width: 1200px;
+    border: 1px solid #ac3333;
+    box-shadow: #005a8c;
+    border-radius: 5px;
+    font-style: italic;
+    font-size: smaller;
+}
+
+/* Styles pour la timeline */
+#timeline-slider {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.slider .track,
+.slider .track-inset,
+.slider .track-overlay {
+    stroke-linecap: round;
+}
+
+.slider .track {
+    stroke: #304F5A;
+    stroke-opacity: 0.3;
+    stroke-width: 10px;
+}
+
+.slider .track-inset {
+    stroke: #dcdcdc;
+    stroke-width: 8px;
+}
+
+.slider .track-overlay {
+    pointer-events: stroke;
+    stroke-width: 50px;
+    stroke: transparent;
+    cursor: crosshair;
+}
+
+.slider .handle {
+    fill: #fff;
+    stroke: #304F5A;
+    stroke-opacity: 0.5;
+    stroke-width: 1.25px;
+}
+
+#year-label {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #304F5A;
+}
+
+.slider {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+.x.axis path {
+    display: none;
+}
+

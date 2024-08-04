@@ -6,7 +6,7 @@ const password = import.meta.env.VITE_NEO4J_PASSWORD || "password";
 
 const driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
 
-const getResearchersByInstitution = async () => {
+export const getResearchersByInstitution = async () => {
   const session = driver.session();
   const result = await session.run(
     `MATCH (r:Researcher)
@@ -34,7 +34,7 @@ const getResearchersByInstitution = async () => {
   }));
 };
 
-const getInstitutions = async () => {
+export const getInstitutions = async () => {
   const session = driver.session();
   const result = await session.run(
     "MATCH (i:Institution) WHERE NOT i.name CONTAINS '-'  AND i.latitude IS NOT NULL AND i.longitude IS NOT NULL AND i.institutionType = 'foundingInstitution' RETURN i.latitude AS latitude, i.longitude AS longitude, i.name AS name"
@@ -47,13 +47,12 @@ const getInstitutions = async () => {
   }));
 };
 
-const getPeople = async () => {
+export const getPeople = async () => {
   const session = driver.session();
   const result = await session.run(
     "MATCH (p:People) RETURN labels(p) AS labels, p.mainInstitution AS institution, p.name AS name, p.arrivalDate AS arrivalDate, p.departureDate AS departureDate"
   );
   session.close();
-  console.log(result);
   return result.records.map((record) => ({
     name: record.get("name"),
     institution: record.get("institution"),
@@ -62,5 +61,3 @@ const getPeople = async () => {
     labels: record.get("labels"),
   }));
 };
-
-export { getResearchersByInstitution, getInstitutions, getPeople, driver };

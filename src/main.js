@@ -1,6 +1,7 @@
 import L, { svg, svgOverlay } from "leaflet";
 import { getInstitutions, getResearchersByInstitution } from "./getDB.js";
 import * as d3 from "d3";
+import { createTimeSlider } from "./timeline.js";
 
 // Initialisation de la carte Leaflet
 const map = L.map("map").setView([46.45324993119597, 6.476370813913443], 9);
@@ -62,6 +63,7 @@ let selectedResearchers = [];
 let selectedInstitutions = [];
 let highlightedAttributes = [];
 let selectedResearcherForPopup = null;
+let institutionMarkersLayer = L.layerGroup().addTo(map);
 
 // Palette de couleurs personnalisée pour les modules
 const moduleColors = d3
@@ -83,6 +85,23 @@ const initializeData = async () => {
   try {
     researchers = await getResearchersByInstitution();
     institutions = await getInstitutions();
+    // Convertir les dates
+    researchers = researchers.map((r) => ({
+      ...r,
+      arrivalDate: new Date(
+        r.arrivalDate.year.low,
+        r.arrivalDate.month.low - 1,
+        r.arrivalDate.day.low
+      ),
+      departureDate: r.departureDate
+        ? new Date(
+            r.departureDate.year.low,
+            r.departureDate.month.low - 1,
+            r.departureDate.day.low
+          )
+        : null,
+    }));
+    console.log("Data initialized successfully", researchers, institutions);
     return { researchers, institutions };
   } catch (error) {
     console.error("Error initializing data:", error);
@@ -298,6 +317,7 @@ const hidePopup = () => {
     .on("end", function () {
       d3.select(this).classed("hidden", true);
     });
+  svgLayer.selectAll("*").remove();
 };
 
 const showPopup = (researcher) => {
@@ -333,7 +353,12 @@ const showPopup = (researcher) => {
             `<span class="highlightable" data-attribute="healthStatus">${status}</span>`
         )
         .join(", ")}</p>
+        
     </div>
+    <div class="instructions">
+          <p>Click on the attributes in the description to display the researchers who share the same attribute(s).</p>
+          </div>
+
   `;
 
   popupDiv
@@ -378,7 +403,7 @@ const showPopup = (researcher) => {
 };
 
 const highlightConnections = () => {
-  svgLayer.selectAll(".attribute-link").remove(); // Supprimez les liens existants
+  svgLayer.selectAll(".attribute-link").remove(); // Supprime les liens existants
 
   const commonResearchers = findCommonResearchers();
 
@@ -425,19 +450,25 @@ const highlightConnections = () => {
 };
 
 // Fonction pour ajouter des marqueurs pour chaque institution sur la carte
-const addInstitutionMarkers = () => {
+const addInstitutionMarkers = (selectedYear) => {
+  institutionMarkersLayer.clearLayers(); // Supprime les marqueurs existants
+
   institutions.forEach((institution) => {
     if (!institution.latitude || !institution.longitude) return;
 
     const numResearchers = researchers.filter(
-      (r) => r.institution === institution.name
+      (r) =>
+        r.institution === institution.name &&
+        r.arrivalDate.getFullYear() <= selectedYear &&
+        (r.departureDate ? r.departureDate.getFullYear() >= selectedYear : true)
     ).length;
+
     const iconSize = calculateIconSize(numResearchers);
 
     const marker = L.marker([institution.latitude, institution.longitude], {
       icon: customIcon(institution.name, [iconSize, iconSize]),
     })
-      .addTo(map)
+      .addTo(institutionMarkersLayer)
       .bindPopup(institution.name)
       .openPopup();
 
@@ -471,13 +502,29 @@ const setupFilters = () => {
     displaySelectedResearchers(selectedResearchers, []);
     svgLayer.selectAll("*").remove();
     hidePopup();
+    d3.select("#year-label").text(2024);
+    d3.select(".handle").attr("cx", "971.1924307939167");
   });
+};
+
+const updateMap = (selectedYear) => {
+  const filteredResearchers = researchers.filter((r) => {
+    const arrivalYear = r.arrivalDate.getFullYear();
+    const departureYear = r.departureDate
+      ? r.departureDate.getFullYear()
+      : new Date().getFullYear();
+    return arrivalYear <= selectedYear && departureYear >= selectedYear;
+  });
+
+  displaySelectedResearchers(filteredResearchers);
+  addInstitutionMarkers(selectedYear); // Ajoutez ceci pour mettre à jour les marqueurs des institutions
 };
 
 // Appel de l'initialisation de la carte et des données
 initializeData().then(() => {
-  addInstitutionMarkers();
   setupFilters();
+  createTimeSlider(updateMap);
+  updateMap(new Date().getFullYear()); // Initialiser la carte avec l'année courante
 });
 
 // Initialisation de la div pour le graphique de réseau

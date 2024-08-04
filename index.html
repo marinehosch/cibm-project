@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script type="module" src="src/timeline.js"></script>
 </head>
 
 <body>
@@ -22,11 +23,13 @@
             </div>
         </div>
     </header>
-                
-    <div class="intro">CIBM constitutes a network of well recognized experts in the field of biomedical imaging and promotes interaction within
-    and beyond the founding partner institutions.
-    The members of the CIBM Community are researchers, scientists and engineers, technicians and clinicians from academia,
-    industry and hospitals in Switzerland and throughout the globe.</div>
+
+    <div class="intro">CIBM constitutes a network of well recognized experts in the field of biomedical imaging and
+        promotes interaction within
+        and beyond the founding partner institutions.
+        The members of the CIBM Community are researchers, scientists and engineers, technicians and clinicians from
+        academia,
+        industry and hospitals in Switzerland and throughout the globe.</div>
 
     <div class="container">
         <div id="map">
@@ -46,9 +49,9 @@
                             <polygon points="7.5,1 14,7.5 7.5,14 1,7.5" fill="#0071B2"></polygon>
                         </svg> DS</div>
                     <div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22" width="15" height="15">
-                        <path fill="#0071B2" stroke="#0071B2" stroke-width="7" d="M12 22 L12 12 M12 12 L5.5 5.5 M12 12 L18.5 5.5" />
-                    </svg>                             
-                         </svg> PET</div>
+                            <path fill="#0071B2" stroke="#0071B2" stroke-width="7"
+                                d="M12 22 L12 12 M12 12 L5.5 5.5 M12 12 L18.5 5.5" />
+                        </svg> PET</div>
 
                     <h3>Founding Institutions</h3>
                     <div><svg width="15" height="15">
@@ -67,8 +70,8 @@
                             <circle cx="7.5" cy="7.5" r="7" fill="#1C95CD"></circle>
                         </svg> UNIL</div>
                 </div>
-        </div>
-            <div id="researcher-popup" class="hidden" >
+            </div>
+            <div id="researcher-popup" class="hidden">
                 <a class=hidden id="close" href="#">&times;</a>
             </div>
         </div>
@@ -104,6 +107,7 @@
             <button id="reset-filters">Reset Filters</button>
         </div>
     </div>
+    <div id="timeline-slider"></div>
     <div class="description">
         <h3>About the CIBM Community Map</h3>
         <p>
