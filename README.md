@@ -1,12 +1,16 @@
 # cibm-project
 
-A visualisation of the researchers working at the CIBM, the alumni and partners
+A visualisation of the researchers working at the CIBM, the alumni, affiliate, associate and partners
 
 # CIBM
 
 ## Description
 
-TB 2024 : visualisation interactive multi-niveau entre chercheurs et technologie. Ce projet est réalisé pour le CIBM, EPFL.
+TB 2024 : visualisation interactive multi-niveau entre chercheurs et technologies. Ce projet est réalisé pour le CIBM, EPFL.
+
+## Auteure
+
+Marine Hosch, étudiante en 3e année en ingérnierie des médias, HEIG-VD, 2024
 
 ## Prérequis
 
@@ -14,7 +18,7 @@ Assurez-vous d'avoir les logiciels suivants installés sur votre machine :
 
 - [Node.js](https://nodejs.org/) (v14 ou supérieure)
 - [Git](https://git-scm.com/)
-- [Neo4j](https://neo4j.com/download/) (v4 ou supérieure) 
+- [Neo4j](https://neo4j.com/download/) (v4 ou supérieure)
 
 ## Installation
 
@@ -25,21 +29,24 @@ Assurez-vous d'avoir les logiciels suivants installés sur votre machine :
    cd cibm-project
    ```
 
+# Initialisation de la Base de Données Neo4j
+
+## Configuration
+
+1. Assurez-vous que Neo4j est installé et en cours d'exécution.
+2. Clonez le dépôt et accédez au répertoire du projet.
+3. Créez un fichier `.env` dans le répertoire `init-databaseb/` en utilisant le modèle fourni dans `.env.example` et remplissez les informations d'identification telle que configurée dans Neo4j.
+
+````sh
+cp init-databaseb/.env.example init-database/.env
+nano init-db/.env
+npm run define-structure
+
 2. Installez les dépendances :
 
    ```bash
    npm install
-   ```
-
-3. Configurez votre connexion Neo4j :
-
-   Créez un fichier `.env` à la racine de votre projet et ajoutez les informations de connexion Neo4j :
-
-   ```env
-   NEO4J_URI=bolt://localhost:7687
-   NEO4J_USER=neo4j
-   NEO4J_PASSWORD=your_password
-   ```
+````
 
 ## Utilisation
 

@@ -30,14 +30,14 @@ const pushMembersToDB = async () => {
         // Créer le noeud pour le membre en tant que Researcher ou Member
         if (isResearcher) {
           await session.run(
-            `MERGE (m:Researcher {name: $name})
-             ON CREATE SET m.module = $module, m.section = $section, m.mainInstitution = $mainInstitutionName, m.isResearcher = $isResearcher
+            `MERGE (m:Researcher:Member:People {name: $name})
+            ON CREATE SET m.module = $module, m.section = $section, m.mainInstitution = $mainInstitutionName, m.isResearcher = $isResearcher
              ON MATCH SET m.module = $module, m.section = $section, m.mainInstitution = $mainInstitutionName, m.isResearcher = $isResearcher`,
             { name, module, section, mainInstitutionName, isResearcher }
           );
         } else {
           await session.run(
-            `MERGE (m:Member {name: $name})
+            `MERGE (m:Member:People {name: $name})
              ON CREATE SET m.section = $section, m.mainInstitution = $mainInstitutionName
              ON MATCH SET m.section = $section, m.mainInstitution = $mainInstitutionName`,
             { name, section, mainInstitutionName }
