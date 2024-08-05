@@ -35,11 +35,11 @@ Assurez-vous d'avoir les logiciels suivants installés sur votre machine :
 
 1. Assurez-vous que Neo4j est installé et en cours d'exécution.
 2. Clonez le dépôt et accédez au répertoire du projet.
-3. Créez un fichier `.env` dans le répertoire `init-databaseb/` en utilisant le modèle fourni dans `.env.example` et remplissez les informations d'identification telle que configurée dans Neo4j.
+3. Créez un fichier `.env` dans le répertoire `init-database/` en utilisant le modèle fourni dans `.env.example` et remplissez les informations d'identification telle que configurées dans Neo4j.
+4. Lancez les commandes suivantes pour atteindre le dossier et lancer le script :
 
-````sh
-cp init-databaseb/.env.example init-database/.env
-nano init-db/.env
+````bash
+cp  init-database/.env
 npm run define-structure
 
 2. Installez les dépendances :
@@ -58,3 +58,41 @@ Pour lancer le projet en mode développement avec Vite :
 npm run dev
 
 ```
+
+## Notes supplémentaires
+
+Assurez-vous que les informations d'identification dans le fichier .env sont correctes.
+Le script pour définir la structure de la base de données Neo4j sera automatiquement exécuté après l'installation des dépendances.
+Ce script ne crée pas les données réelles, mais définit la structure et les relations nécessaires pour accueillir les données.
+
+### Structure du Projet
+
+Voici à quoi devrait ressembler la structure de votre projet après avoir ajouté les fichiers nécessaires :
+
+cibm-project/
+│
+├── init-database/
+│ ├── defineDatabaseStructure.js
+│ └── .env.example
+│
+├── node_modules/
+│
+├── public/
+│
+├── src/
+│ ├── Neo4j
+│ ├── getDB
+│ ├── main.js
+│ ├── webscraping.js
+│ └── main.js
+│
+├── package.json
+├── package-lock.json
+├── README.md
+└── .env
+
+### Scripts NPM
+
+    npm install: Installe toutes les dépendances nécessaires.
+    npm run define-structure: Exécute le script pour définir la structure de la base de données Neo4j.
+    npm run dev: Démarre le serveur de développement Vite.
