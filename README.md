@@ -17,8 +17,8 @@ Marine Hosch, étudiante en 3e année en ingérnierie des médias, HEIG-VD, 2024
 Assurez-vous d'avoir les logiciels suivants installés sur votre machine :
 
 - [Node.js](https://nodejs.org/) (v14 ou supérieure)
-- [Git](https://git-scm.com/)
 - [Neo4j](https://neo4j.com/download/) (v4 ou supérieure)
+- [Git](https://git-scm.com/) : Utilisé pour cloner le dépôt du projet. Git est un outil de contrôle de version qui permet de suivre les modifications apportées au code source et de collaborer avec d'autres développeurs.
 
 ## Installation
 

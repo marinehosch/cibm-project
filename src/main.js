@@ -437,16 +437,16 @@ const highlightConnections = () => {
   ).map((cb) => cb.value);
   displaySelectedResearchers(selectedResearchers, selectedModules);
 
-  // Zoom out to fit all researchers in view
-  if (commonResearchers.length > 0) {
-    const bounds = L.latLngBounds(
-      commonResearchers.map((researcher) => [
-        researcher.latitude,
-        researcher.longitude,
-      ])
-    );
-    map.fitBounds(bounds);
-  }
+  // Zoom out to fit all researchers in view //doesn't work
+  //   if (commonResearchers.length > 0) {
+  //     const bounds = L.latLngBounds(
+  //       commonResearchers.map((researcher) => [
+  //         researcher.latitude,
+  //         researcher.longitude,
+  //       ])
+  //     );
+  //     map.fitBounds(bounds);
+  //   }
 };
 
 // Fonction pour ajouter des marqueurs pour chaque institution sur la carte
