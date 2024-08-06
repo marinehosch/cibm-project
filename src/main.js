@@ -324,40 +324,41 @@ const showPopup = (researcher) => {
   const popupDiv = d3.select("#researcher-popup");
   const popupContent = `
     <div>
-      <a id="close" href="#">&times;</a>
-      <h3>${researcher.name}</h3>
-      <p><strong>Institution:</strong> <span class="highlightable" data-attribute="institution">${
-        researcher.institution
-      }</span></p>
-      <p><strong>Technologie:</strong> <span class="highlightable" data-attribute="module">${
-        researcher.module
-      }</span></p>
-      <p><strong>Expertise:</strong> ${researcher.keywords
-        .map(
-          (keyword) =>
-            `<span class="highlightable" data-attribute="keywords">${keyword}</span>`
-        )
-        .join(", ")}</p>
-      <p><strong>Type de population:</strong> <span class="highlightable" data-attribute="populationType">${
-        researcher.populationType
-      }</span></p>
-      <p><strong>Groupe d'âge:</strong> ${researcher.ageGroup
-        .map(
-          (age) =>
-            `<span class="highlightable" data-attribute="ageGroup">${age}</span>`
-        )
-        .join(", ")}</p>
-      <p><strong>Statut de santé:</strong> ${researcher.healthStatus
-        .map(
-          (status) =>
-            `<span class="highlightable" data-attribute="healthStatus">${status}</span>`
-        )
-        .join(", ")}</p>
-        
-    </div>
-    <div class="instructions">
-          <p>Click on the attributes in the description to display the researchers who share the same attribute(s).</p>
-          </div>
+  <a id="close" href="#">&times;</a>
+  <h3>${researcher.name}</h3>
+  <p><strong>Institution:</strong> <span class="highlightable" data-attribute="institution">${
+    researcher.institution
+  }</span></p>
+  <p><strong>Technology:</strong> <span class="highlightable" data-attribute="module">${
+    researcher.module
+  }</span></p>
+  <p><strong>Expertise:</strong> ${researcher.keywords
+    .map(
+      (keyword) =>
+        `<span class="highlightable" data-attribute="keywords">${keyword}</span>`
+    )
+    .join(", ")}</p>
+  <p><strong>Population Type:</strong> <span class="highlightable" data-attribute="populationType">${
+    researcher.populationType
+  }</span></p>
+  <p><strong>Age Group:</strong> ${researcher.ageGroup
+    .map(
+      (age) =>
+        `<span class="highlightable" data-attribute="ageGroup">${age}</span>`
+    )
+    .join(", ")}</p>
+  <p><strong>Health Status:</strong> ${researcher.healthStatus
+    .map(
+      (status) =>
+        `<span class="highlightable" data-attribute="healthStatus">${status}</span>`
+    )
+    .join(", ")}</p>
+  
+</div>
+<div class="instructions">
+      <p>Click on the attributes in the description to display the researchers who share the same attribute(s).</p>
+</div>
+
 
   `;
 

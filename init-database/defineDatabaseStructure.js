@@ -22,8 +22,8 @@ async function defineDatabaseStructure() {
   for (const institution of institutions) {
     await session.run(
       `MERGE (i:Institution {name: $name})
-         ON CREATE SET i.latitude = $latitude, i.longitude = $longitude,  i.type = 'FoundingInstitution'
-         ON MATCH SET i.latitude = $latitude, i.longitude = $longitude, i.type = 'FoundingInstitution'`,
+       ON CREATE SET i.latitude = $latitude, i.longitude = $longitude, i.type = 'FoundingInstitution'
+       ON MATCH SET i.latitude = $latitude, i.longitude = $longitude, i.type = 'FoundingInstitution'`,
       institution
     );
   }
@@ -96,31 +96,8 @@ async function defineDatabaseStructure() {
       MATCH (a:Alumni)
       WITH a, a.arrivalDate AS arrivalDate, duration.inDays(arrivalDate, date("2024-12-31")).days AS remainingDays
       WITH a, arrivalDate, toInteger(rand() * remainingDays) AS randomDepartureDays
-      SET a.departureDate = arrivalDate + duration({ days: randomDepartureDays })
-    `);
-
-    // Ajouter les mots-clés et les propriétés supplémentaires aux chercheurs
-    await session.run(`
-      WITH ["neuroscience", "cognitive science", "neuroimaging", "brain mapping", "behavioral science", "clinical research", "psychology", "psychiatry", "genetics", "neuropharmacology", "cardiac imaging", "neurometabolism", "child development", "spectroscopy", "preclinical"] AS keywords,
-           ["human", "animal"] AS population_types,
-           ["child", "adult"] AS age_groups,
-           ["healthy", "clinical"] AS health_statuses
-      MATCH (r:Researcher)
-      WITH r, 
-           keywords, 
-           population_types,
-           age_groups,
-           health_statuses,
-           id(r) % size(keywords) AS keywordIndex,
-           id(r) % size(population_types) AS populationIndex,
-           id(r) % size(age_groups) AS ageGroupIndex,
-           id(r) % size(health_statuses) AS healthStatusIndex,
-           rand() AS randomValue
-      SET r.keywords = [keywords[keywordIndex], keywords[(keywordIndex + 1) % size(keywords)], keywords[(keywordIndex + 2) % size(keywords)]],
-          r.population_type = population_types[populationIndex],
-          r.age_group = CASE WHEN randomValue < 0.5 THEN [age_groups[ageGroupIndex]] ELSE [age_groups[ageGroupIndex], age_groups[(ageGroupIndex + 1) % size(age_groups)]] END,
-          r.health_status = CASE WHEN randomValue < 0.5 THEN [health_statuses[healthStatusIndex]] ELSE [health_statuses[healthStatusIndex], health_statuses[(healthStatusIndex + 1) % size(health_statuses)]] END
-    `);
+      SET a.departureDate = arrivalDate + duration({ days: randomDepartureDays })
+    `);
 
     console.log("Database structure and connections defined successfully");
   } catch (error) {
@@ -139,3 +116,5 @@ defineDatabaseStructure()
     )
   )
   .finally(() => driver.close());
+
+export { defineDatabaseStructure };

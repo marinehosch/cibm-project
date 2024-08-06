@@ -6,6 +6,7 @@ const user = import.meta.env.VITE_NEO4J_USER || "neo4j";
 const password = import.meta.env.VITE_NEO4J_PASSWORD || "password";
 
 const driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
+
 const pushMembersToDB = async () => {
   const session = driver.session();
   try {
@@ -21,17 +22,14 @@ const pushMembersToDB = async () => {
         // Extraire la première partie du nom de l'institution si composite (e.g., "CHUV-UNIL" -> "CHUV")
         let mainInstitutionName = mainInstitution;
         if (mainInstitution.includes("-")) {
-          mainInstitutionName = mainInstitution.substring(
-            0,
-            mainInstitution.indexOf("-")
-          );
+          mainInstitutionName = mainInstitution.split("-")[0];
         }
 
         // Créer le noeud pour le membre en tant que Researcher ou Member
         if (isResearcher) {
           await session.run(
             `MERGE (m:Researcher:Member:People {name: $name})
-            ON CREATE SET m.module = $module, m.section = $section, m.mainInstitution = $mainInstitutionName, m.isResearcher = $isResearcher
+             ON CREATE SET m.module = $module, m.section = $section, m.mainInstitution = $mainInstitutionName, m.isResearcher = $isResearcher, m.keywords = [], m.population_type = [], m.age_group = [], m.health_status = []
              ON MATCH SET m.module = $module, m.section = $section, m.mainInstitution = $mainInstitutionName, m.isResearcher = $isResearcher`,
             { name, module, section, mainInstitutionName, isResearcher }
           );
@@ -78,9 +76,7 @@ const pushMembersToDB = async () => {
         // Créer ou récupérer le noeud pour l'institution principale
         await session.run(
           `MERGE (i:Institution {name: $mainInstitutionName})`,
-          {
-            mainInstitutionName,
-          }
+          { mainInstitutionName }
         );
 
         // Créer la relation entre le Member/Researcher et l'institution principale
@@ -100,7 +96,78 @@ const pushMembersToDB = async () => {
   }
 };
 
-// Appel de la fonction pour pousser les membres
-pushMembersToDB();
+// Fonction pour mettre à jour les propriétés des chercheurs existants
+async function updateResearchersProperties() {
+  const session = driver.session();
 
-export { pushMembersToDB };
+  try {
+    // Ajouter les dates d'arrivée pour les chercheurs
+    await session.run(`
+      WITH date("2004-01-01") AS startDate, date("2024-12-31") AS endDate
+      MATCH (r:Researcher)
+      WITH r, startDate, endDate, duration.inDays(startDate, endDate).days AS totalDays
+      WITH r, startDate, toInteger(rand() * totalDays) AS randomDaysOffset
+      SET r.arrivalDate = date(startDate) + duration({ days: randomDaysOffset })
+    `);
+
+    // Ajouter les dates d'arrivée et de départ pour les alumni
+    await session.run(`
+      WITH date("2004-01-01") AS startDate, date("2024-12-31") AS endDate
+      MATCH (a:Alumni)
+      WITH a, startDate, endDate, duration.inDays(startDate, endDate).days AS totalDays
+      WITH a, startDate, toInteger(rand() * totalDays) AS randomDaysOffset
+      SET a.arrivalDate = date(startDate) + duration({ days: randomDaysOffset })
+    `);
+
+    await session.run(`
+      MATCH (a:Alumni)
+      WHERE a.arrivalDate IS NOT NULL
+      WITH a, a.arrivalDate AS arrivalDate, duration.inDays(arrivalDate, date("2024-12-31")).days AS remainingDays
+      WITH a, arrivalDate, toInteger(rand() * remainingDays) AS randomDepartureDays
+      SET a.departureDate = arrivalDate + duration({ days: randomDepartureDays })
+    `);
+
+    // Ajouter les mots-clés et les propriétés supplémentaires aux chercheurs
+    await session.run(`
+     // List of keywords and properties
+WITH ["neuroscience", "cognitive science", "neuroimaging", "brain mapping", "behavioral science", "clinical research", "psychology", "psychiatry", "genetics", "neuropharmacology", "cardiac imaging", "neurometabolism", "child development", "spectroscopy", "preclinical"] AS keywords,
+     ["human", "animal"] AS population_types,
+     ["child", "adult"] AS age_groups,
+     ["healthy", "clinical"] AS health_statuses
+
+// Match all researchers and create an index for assigning properties
+MATCH (r:Researcher)
+WITH r, 
+     keywords, 
+     population_types,
+     age_groups,
+     health_statuses,
+     id(r) % size(keywords) AS keywordIndex,
+     id(r) % size(population_types) AS populationIndex,
+     id(r) % size(age_groups) AS ageGroupIndex,
+     id(r) % size(health_statuses) AS healthStatusIndex,
+     rand() AS randomValue
+
+// Add the keywords and new properties to the researchers
+SET r.keywords = [keywords[keywordIndex], keywords[(keywordIndex + 1) % size(keywords)], keywords[(keywordIndex + 2) % size(keywords)]],
+    r.population_type = population_types[populationIndex],
+    r.age_group = CASE WHEN randomValue < 0.5 THEN [age_groups[ageGroupIndex]] ELSE [age_groups[ageGroupIndex], age_groups[(ageGroupIndex + 1) % size(age_groups)]] END,
+    r.health_status = CASE WHEN randomValue < 0.5 THEN [health_statuses[healthStatusIndex]] ELSE [health_statuses[healthStatusIndex], health_statuses[(healthStatusIndex + 1) % size(health_statuses)]] END
+    `);
+
+    console.log("Researchers properties updated successfully");
+  } catch (error) {
+    console.error("Error updating researchers properties:", error);
+  } finally {
+    await session.close();
+  }
+}
+
+// Appel des fonctions pour pousser les membres et mettre à jour les propriétés
+pushMembersToDB()
+  .then(() => updateResearchersProperties())
+  .then(() => console.log("All operations completed successfully"))
+  .catch((error) => console.error("Error completing operations:", error))
+  .finally(() => driver.close());
+
+export { pushMembersToDB, updateResearchersProperties };

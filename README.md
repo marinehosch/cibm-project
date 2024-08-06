@@ -63,7 +63,7 @@ npm run dev
 
 Assurez-vous que les informations d'identification dans le fichier .env sont correctes.
 Le script pour définir la structure de la base de données Neo4j sera automatiquement exécuté après l'installation des dépendances.
-Ce script ne crée pas les données réelles, mais définit la structure et les relations nécessaires pour accueillir les données.
+Ce script ne crée pas les données réelles, mais définit la structure et les relations nécessaires pour accueillir les données et ajoutent des données fictives d'exemple nécessaires à la visusalisation.
 
 ### Structure du Projet
 
